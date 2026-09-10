@@ -1,0 +1,48 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.label {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-dim);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+}
+
+.cell {
+  width: 4rem;
+  height: 4rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  border-radius: 0.5rem;
+  background: var(--surface);
+  color: var(--text);
+  border: 2px solid var(--border);
+  transition: border-color 0.15s, transform 0.15s, background 0.15s;
+}
+
+.cell:not(.used):hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+
+.cell.selected {
+  border-color: var(--accent);
+  background: rgba(56, 189, 248, 0.15);
+  box-shadow: 0 0 12px var(--accent-glow);
+}
+
+.cell.used {
+  opacity: 0.25;
+  cursor: default;
+  border-color: transparent;
+}
