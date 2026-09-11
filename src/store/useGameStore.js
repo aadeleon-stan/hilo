@@ -103,6 +103,7 @@ const useGameStore = create((set, get) => ({
       selectedB: null,
       lastResult: null,
       roundBonus: 0,
+      turn: 0,
     });
   },
 

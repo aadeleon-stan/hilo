@@ -1,17 +1,21 @@
 import useGameStore from '../../store/useGameStore';
+import { getTarget } from '../../store/gameLogic';
 import styles from './Overlay.module.css';
 
 export default function Overlay() {
   const phase = useGameStore((s) => s.phase);
   const money = useGameStore((s) => s.money);
   const roundBonus = useGameStore((s) => s.roundBonus);
-  const lastResult = useGameStore((s) => s.lastResult);
+  const round = useGameStore((s) => s.round);
+  const score = useGameStore((s) => s.score);
+  const turn = useGameStore((s) => s.turn);
   const nextRound = useGameStore((s) => s.nextRound);
   const resetGame = useGameStore((s) => s.resetGame);
 
   if (phase !== 'win' && phase !== 'loss') return null;
 
   const isWin = phase === 'win';
+  const target = getTarget(round);
 
   return (
     <div className={styles.backdrop}>
@@ -20,16 +24,16 @@ export default function Overlay() {
           {isWin ? 'Round Complete!' : 'Game Over'}
         </h2>
 
-        {lastResult && (
-          <p className={styles.detail}>
-            Last: {lastResult.a} x {lastResult.b} = {lastResult.product}
-          </p>
-        )}
+        <div className={styles.stats}>
+          <span>Cleared in {turn} turns</span>
+          <span>Score: {score}/{target}</span>
+        </div>
 
         {isWin && roundBonus > 0 && (
-          <p className={styles.bonus}>Round Bonus: +${roundBonus}</p>
+          <p className={styles.bonus}>+${roundBonus}</p>
         )}
-        <p className={styles.money}>Total Money: ${money}</p>
+
+        <p className={styles.money}>Total: ${money.toLocaleString()}</p>
 
         <button
           className={styles.btn}

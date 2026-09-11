@@ -17,6 +17,8 @@
   --success: #4ade80;
   --danger: #f87171;
   --gold: #fbbf24;
+  --gold-glow: rgba(251, 191, 36, 0.3);
+  --success-glow: rgba(74, 222, 128, 0.3);
 }
 
 html,
