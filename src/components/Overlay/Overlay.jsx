@@ -4,6 +4,7 @@ import styles from './Overlay.module.css';
 export default function Overlay() {
   const phase = useGameStore((s) => s.phase);
   const money = useGameStore((s) => s.money);
+  const roundBonus = useGameStore((s) => s.roundBonus);
   const lastResult = useGameStore((s) => s.lastResult);
   const nextRound = useGameStore((s) => s.nextRound);
   const resetGame = useGameStore((s) => s.resetGame);
@@ -25,6 +26,9 @@ export default function Overlay() {
           </p>
         )}
 
+        {isWin && roundBonus > 0 && (
+          <p className={styles.bonus}>Round Bonus: +${roundBonus}</p>
+        )}
         <p className={styles.money}>Total Money: ${money}</p>
 
         <button

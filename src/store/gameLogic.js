@@ -18,7 +18,11 @@ export function computeProduct(a, b) {
 }
 
 export function getTarget(round) {
-  return 200 + round * 100;
+  return 150 + round * 50;
+}
+
+export function getRoundBonus(round) {
+  return round * 150;
 }
 
 export function checkRoundEnd(score, target, poolA, poolB) {

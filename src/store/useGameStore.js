@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { generatePool, computeProduct, getTarget, checkRoundEnd } from './gameLogic';
+import { generatePool, computeProduct, getTarget, getRoundBonus, checkRoundEnd } from './gameLogic';
 
 const useGameStore = create((set, get) => ({
   screen: 'menu',
@@ -13,6 +13,7 @@ const useGameStore = create((set, get) => ({
   selectedB: null,
   lastResult: null,
   turn: 0,
+  roundBonus: 0,
 
   startGame: () =>
     set({
@@ -27,6 +28,7 @@ const useGameStore = create((set, get) => ({
       selectedB: null,
       lastResult: null,
       turn: 0,
+      roundBonus: 0,
     }),
 
   selectFromPoolA: (id) => {
@@ -73,6 +75,7 @@ const useGameStore = create((set, get) => ({
     const target = getTarget(state.round);
 
     const outcome = checkRoundEnd(newScore, target, newPoolA, newPoolB);
+    const bonus = outcome === 'win' ? getRoundBonus(state.round) : 0;
 
     set({
       poolA: newPoolA,
@@ -82,7 +85,8 @@ const useGameStore = create((set, get) => ({
       lastResult: result,
       turn: state.turn + 1,
       score: newScore,
-      money: newMoney,
+      money: newMoney + bonus,
+      roundBonus: bonus,
       phase: outcome || 'selecting',
     });
   },
@@ -98,6 +102,7 @@ const useGameStore = create((set, get) => ({
       selectedA: null,
       selectedB: null,
       lastResult: null,
+      roundBonus: 0,
     });
   },
 
@@ -113,6 +118,7 @@ const useGameStore = create((set, get) => ({
       selectedA: null,
       selectedB: null,
       lastResult: null,
+      roundBonus: 0,
     }),
 }));
 
