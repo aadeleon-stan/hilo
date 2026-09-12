@@ -8,8 +8,9 @@ export default function MainMenu() {
     <div className={styles.container}>
       <h1 className={styles.title}>HiLo</h1>
       <p className={styles.description}>
-        Multiply two-digit numbers. High word earns money, low word scores
-        points. Meet the target to advance!
+        Pick two numbers and multiply them. The last two digits score points
+        — but the leading digits cost energy. Hit the target before your
+        energy runs out!
       </p>
       <button className={styles.playBtn} onClick={startGame}>
         Play

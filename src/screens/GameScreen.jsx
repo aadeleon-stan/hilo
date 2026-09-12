@@ -1,13 +1,13 @@
 import useGameStore from '../store/useGameStore';
-import { getTarget } from '../store/gameLogic';
+import { getTarget, getBudget } from '../store/gameLogic';
 import HUD from '../components/HUD/HUD';
 import Pool from '../components/Pool/Pool';
 import Overlay from '../components/Overlay/Overlay';
 import styles from './GameScreen.module.css';
 
 function getQuality(lowWord, highWord) {
-  if (lowWord >= 70 && highWord >= 50) return 'great';
-  if (lowWord >= 40 && highWord >= 25) return 'good';
+  if (lowWord >= 70 && highWord <= 10) return 'great';
+  if (lowWord >= 40 && highWord <= 25) return 'good';
   return 'poor';
 }
 
@@ -23,11 +23,14 @@ export default function GameScreen() {
   const lastResult = useGameStore((s) => s.lastResult);
   const turn = useGameStore((s) => s.turn);
   const score = useGameStore((s) => s.score);
-  const money = useGameStore((s) => s.money);
+  const energy = useGameStore((s) => s.energy);
+  const bank = useGameStore((s) => s.bank);
   const round = useGameStore((s) => s.round);
 
   const target = getTarget(round);
+  const budget = getBudget(round);
   const pct = Math.min((score / target) * 100, 100);
+  const energyPct = Math.max((energy / budget) * 100, 0);
   const turnsRemaining = Math.min(
     poolA.filter((n) => !n.used).length,
     poolB.filter((n) => !n.used).length
@@ -41,10 +44,15 @@ export default function GameScreen() {
       ? Math.ceil((target - score) / turnsRemaining)
       : null;
 
-  // Fill color shifts from cyan toward green as progress approaches 100%
-  const fillColor = pct >= 80 ? 'var(--success)' : 'var(--accent)';
+  const energyPerTurn =
+    turnsRemaining > 0
+      ? Math.floor(energy / turnsRemaining)
+      : null;
 
-  // Awaiting selection: one pool has selection, the other doesn't
+  const fillColor = pct >= 80 ? 'var(--success)' : 'var(--accent)';
+  const energyColor = energyPct <= 25 ? 'var(--danger)' : 'var(--gold)';
+  const energyLow = energyPct <= 25;
+
   const awaitingA = selectedB !== null && selectedA === null;
   const awaitingB = selectedA !== null && selectedB === null;
 
@@ -76,7 +84,7 @@ export default function GameScreen() {
             {lastResult.a} &times; {lastResult.b} = {lastResult.product}
           </span>
           <span className={styles.breakdown}>
-            <span className={styles.hi}>+${lastResult.highWord} money</span>
+            <span className={styles.hi}>&minus;{lastResult.highWord} energy</span>
             {' '}
             <span className={styles.lo}>+{lastResult.lowWord} pts</span>
           </span>
@@ -85,6 +93,7 @@ export default function GameScreen() {
       )}
 
       <div className={styles.statusPanel}>
+        <span className={styles.barLabel}>Score</span>
         <div className={styles.progressRow}>
           <div className={styles.bar}>
             <div
@@ -95,16 +104,27 @@ export default function GameScreen() {
           <span className={styles.scoreText}>{score} / {target}</span>
         </div>
         {needPerTurn !== null && (
-          <span className={styles.hint}>Need ~{needPerTurn}/turn to win</span>
+          <span className={styles.hint}>
+            Need ~{needPerTurn} pts/turn
+            {energyPerTurn !== null && ` · budget ~${energyPerTurn}/turn`}
+          </span>
         )}
-        <div className={styles.moneyRow}>
-          <span key={money} className={styles.moneyAmount}>${money.toLocaleString()}</span>
+        <span className={styles.barLabel}>Energy</span>
+        <div className={styles.energyRow}>
+          <div className={`${styles.energyBar} ${energyLow ? styles.energyLow : ''}`}>
+            <div
+              className={styles.energyFill}
+              style={{ width: `${energyPct}%`, background: energyColor }}
+            />
+          </div>
+          <span className={styles.energyText}>{energy} energy</span>
           {lastResult && (
-            <span key={`add-${turn}`} className={styles.moneyFloat}>
-              +${lastResult.highWord}
+            <span key={`cost-${turn}`} className={styles.energyFloat}>
+              &minus;{lastResult.highWord}
             </span>
           )}
         </div>
+        <span className={styles.bank}>Bank: {bank.toLocaleString()}</span>
       </div>
 
       <Overlay />

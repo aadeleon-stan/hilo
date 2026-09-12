@@ -1,11 +1,12 @@
 import { create } from 'zustand';
-import { generatePool, computeProduct, getTarget, getRoundBonus, checkRoundEnd } from './gameLogic';
+import { generatePool, computeProduct, getTarget, getBudget, getRoundBonus, checkRoundEnd } from './gameLogic';
 
 const useGameStore = create((set, get) => ({
   screen: 'menu',
   round: 1,
   score: 0,
-  money: 0,
+  energy: 0,
+  bank: 0,
   phase: 'selecting',
   poolA: [],
   poolB: [],
@@ -14,13 +15,15 @@ const useGameStore = create((set, get) => ({
   lastResult: null,
   turn: 0,
   roundBonus: 0,
+  turnsAtEnd: 0,
 
   startGame: () =>
     set({
       screen: 'game',
       round: 1,
       score: 0,
-      money: 0,
+      energy: getBudget(1),
+      bank: 0,
       phase: 'selecting',
       poolA: generatePool(),
       poolB: generatePool(),
@@ -29,6 +32,7 @@ const useGameStore = create((set, get) => ({
       lastResult: null,
       turn: 0,
       roundBonus: 0,
+      turnsAtEnd: 0,
     }),
 
   selectFromPoolA: (id) => {
@@ -71,11 +75,16 @@ const useGameStore = create((set, get) => ({
       n.id === state.selectedB ? { ...n, used: true } : n
     );
     const newScore = state.score + result.lowWord;
-    const newMoney = state.money + result.highWord;
+    const newEnergy = state.energy - result.highWord;
     const target = getTarget(state.round);
 
-    const outcome = checkRoundEnd(newScore, target, newPoolA, newPoolB);
-    const bonus = outcome === 'win' ? getRoundBonus(state.round) : 0;
+    const outcome = checkRoundEnd(newScore, target, newEnergy, newPoolA, newPoolB);
+
+    const turnsRemaining = Math.min(
+      newPoolA.filter((n) => !n.used).length,
+      newPoolB.filter((n) => !n.used).length
+    );
+    const bonus = outcome === 'win' ? getRoundBonus(turnsRemaining) : 0;
 
     set({
       poolA: newPoolA,
@@ -85,17 +94,21 @@ const useGameStore = create((set, get) => ({
       lastResult: result,
       turn: state.turn + 1,
       score: newScore,
-      money: newMoney + bonus,
+      energy: newEnergy,
+      bank: outcome === 'win' ? state.bank + bonus + newEnergy : state.bank,
       roundBonus: bonus,
+      turnsAtEnd: outcome === 'win' ? turnsRemaining : 0,
       phase: outcome || 'selecting',
     });
   },
 
   nextRound: () => {
     const state = get();
+    const newRound = state.round + 1;
     set({
-      round: state.round + 1,
+      round: newRound,
       score: 0,
+      energy: getBudget(newRound),
       phase: 'selecting',
       poolA: generatePool(),
       poolB: generatePool(),
@@ -103,6 +116,7 @@ const useGameStore = create((set, get) => ({
       selectedB: null,
       lastResult: null,
       roundBonus: 0,
+      turnsAtEnd: 0,
       turn: 0,
     });
   },
@@ -112,7 +126,8 @@ const useGameStore = create((set, get) => ({
       screen: 'menu',
       round: 1,
       score: 0,
-      money: 0,
+      energy: 0,
+      bank: 0,
       phase: 'selecting',
       poolA: [],
       poolB: [],
@@ -120,6 +135,7 @@ const useGameStore = create((set, get) => ({
       selectedB: null,
       lastResult: null,
       roundBonus: 0,
+      turnsAtEnd: 0,
     }),
 }));
 

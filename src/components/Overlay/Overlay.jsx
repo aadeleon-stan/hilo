@@ -4,8 +4,10 @@ import styles from './Overlay.module.css';
 
 export default function Overlay() {
   const phase = useGameStore((s) => s.phase);
-  const money = useGameStore((s) => s.money);
+  const bank = useGameStore((s) => s.bank);
+  const energy = useGameStore((s) => s.energy);
   const roundBonus = useGameStore((s) => s.roundBonus);
+  const turnsAtEnd = useGameStore((s) => s.turnsAtEnd);
   const round = useGameStore((s) => s.round);
   const score = useGameStore((s) => s.score);
   const turn = useGameStore((s) => s.turn);
@@ -25,15 +27,27 @@ export default function Overlay() {
         </h2>
 
         <div className={styles.stats}>
-          <span>Cleared in {turn} turns</span>
+          {isWin ? (
+            <span>Cleared in {turn} turns</span>
+          ) : (
+            <span>{energy <= 0 ? 'Out of energy!' : 'Ran out of turns!'}</span>
+          )}
           <span>Score: {score}/{target}</span>
         </div>
 
-        {isWin && roundBonus > 0 && (
-          <p className={styles.bonus}>+${roundBonus}</p>
+        {isWin && (
+          <div className={styles.bonusBlock}>
+            {roundBonus > 0 && (
+              <p className={styles.bonus}>+{roundBonus} bonus ({turnsAtEnd} turns saved &times; 25)</p>
+            )}
+            {energy > 0 && (
+              <p className={styles.energySaved}>+{energy} energy saved</p>
+            )}
+            <p className={styles.bonusTotal}>= {roundBonus + energy} banked</p>
+          </div>
         )}
 
-        <p className={styles.money}>Total: ${money.toLocaleString()}</p>
+        <p className={styles.total}>Bank: {bank.toLocaleString()}</p>
 
         <button
           className={styles.btn}

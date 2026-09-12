@@ -18,15 +18,20 @@ export function computeProduct(a, b) {
 }
 
 export function getTarget(round) {
-  return 150 + round * 50;
+  return 100 + round * 30;
 }
 
-export function getRoundBonus(round) {
-  return round * 150;
+export function getBudget(round) {
+  return 280 - round * 5;
 }
 
-export function checkRoundEnd(score, target, poolA, poolB) {
+export function getRoundBonus(turnsRemaining) {
+  return turnsRemaining * 25;
+}
+
+export function checkRoundEnd(score, target, energy, poolA, poolB) {
   if (score >= target) return 'win';
+  if (energy <= 0) return 'loss';
   const aRemaining = poolA.filter((n) => !n.used).length;
   const bRemaining = poolB.filter((n) => !n.used).length;
   if (aRemaining === 0 || bRemaining === 0) return 'loss';
