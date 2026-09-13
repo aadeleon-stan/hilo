@@ -94,6 +94,11 @@
   letter-spacing: 0.05em;
 }
 
+.label.optimal {
+  color: var(--gold);
+  animation: popScale 0.4s ease;
+}
+
 .barLabel {
   font-size: 0.65rem;
   font-weight: 600;

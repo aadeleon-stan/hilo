@@ -1,5 +1,11 @@
 import useGameStore from '../store/useGameStore';
-import { getTarget, getBudget } from '../store/gameLogic';
+import {
+  getTarget,
+  getBudget,
+  getRunTarget,
+  RUN_ROUNDS,
+  RUN_MAX_ENERGY,
+} from '../store/gameLogic';
 import HUD from '../components/HUD/HUD';
 import Pool from '../components/Pool/Pool';
 import Overlay from '../components/Overlay/Overlay';
@@ -13,7 +19,13 @@ function getQuality(lowWord, highWord) {
 
 const qualityLabels = { great: 'Great!', good: 'Nice', poor: null };
 
+function getRunLabel(lastResult) {
+  if (!lastResult.isBest) return null;
+  return lastResult.bonus > 0 ? `Optimal! +${lastResult.bonus} energy` : 'Optimal!';
+}
+
 export default function GameScreen() {
+  const mode = useGameStore((s) => s.mode);
   const poolA = useGameStore((s) => s.poolA);
   const poolB = useGameStore((s) => s.poolB);
   const selectedA = useGameStore((s) => s.selectedA);
@@ -27,26 +39,32 @@ export default function GameScreen() {
   const bank = useGameStore((s) => s.bank);
   const round = useGameStore((s) => s.round);
 
-  const target = getTarget(round);
-  const budget = getBudget(round);
+  const isRun = mode === 'run';
+  const target = isRun ? getRunTarget(round) : getTarget(round);
+  const maxEnergy = isRun ? RUN_MAX_ENERGY : getBudget(round);
   const pct = Math.min((score / target) * 100, 100);
-  const energyPct = Math.max((energy / budget) * 100, 0);
+  const energyPct = Math.max((energy / maxEnergy) * 100, 0);
   const turnsRemaining = Math.min(
     poolA.filter((n) => !n.used).length,
     poolB.filter((n) => !n.used).length
   );
 
   const quality = lastResult ? getQuality(lastResult.lowWord, lastResult.highWord) : null;
-  const label = quality ? qualityLabels[quality] : null;
+  let label = null;
+  if (lastResult) {
+    label = isRun ? getRunLabel(lastResult) : qualityLabels[quality];
+  }
 
   const needPerTurn =
     turnsRemaining > 0 && score < target
       ? Math.ceil((target - score) / turnsRemaining)
       : null;
 
+  // In a run, energy has to last the remaining rounds, not just this one.
+  const roundsLeft = isRun ? RUN_ROUNDS - round + 1 : 1;
   const energyPerTurn =
     turnsRemaining > 0
-      ? Math.floor(energy / turnsRemaining)
+      ? Math.floor(energy / roundsLeft / turnsRemaining)
       : null;
 
   const fillColor = pct >= 80 ? 'var(--success)' : 'var(--accent)';
@@ -88,7 +106,11 @@ export default function GameScreen() {
             {' '}
             <span className={styles.lo}>+{lastResult.lowWord} pts</span>
           </span>
-          {label && <span className={styles.label}>{label}</span>}
+          {label && (
+            <span className={`${styles.label} ${isRun ? styles.optimal : ''}`}>
+              {label}
+            </span>
+          )}
         </div>
       )}
 
@@ -117,14 +139,16 @@ export default function GameScreen() {
               style={{ width: `${energyPct}%`, background: energyColor }}
             />
           </div>
-          <span className={styles.energyText}>{energy} energy</span>
+          <span className={styles.energyText}>
+            {isRun ? `${energy} / ${maxEnergy}` : `${energy} energy`}
+          </span>
           {lastResult && (
             <span key={`cost-${turn}`} className={styles.energyFloat}>
               &minus;{lastResult.highWord}
             </span>
           )}
         </div>
-        <span className={styles.bank}>Bank: {bank.toLocaleString()}</span>
+        {!isRun && <span className={styles.bank}>Bank: {bank.toLocaleString()}</span>}
       </div>
 
       <Overlay />

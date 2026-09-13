@@ -1,3 +1,10 @@
+// Run (progression) mode tuning. See feature-docs/progression-research.md.
+export const RUN_ROUNDS = 10;
+export const RUN_MAX_ENERGY = 200;
+export const RUN_TURN_REFUND = 5;
+export const BEST_PLAY_TOLERANCE = 0.15;
+export const BEST_PLAY_MIN_SCORE = 20;
+
 export function generatePool() {
   const values = new Set();
   while (values.size < 9) {
@@ -27,6 +34,54 @@ export function getBudget(round) {
 
 export function getRoundBonus(turnsRemaining) {
   return turnsRemaining * 25;
+}
+
+export function getRunTarget(round) {
+  return 240 + (round - 1) * 15;
+}
+
+export function getBestPlayBonus(highWord) {
+  return Math.min(6, Math.ceil(highWord / 2));
+}
+
+// Scores every open move as points per needed score pace minus cost per
+// affordable energy pace. Among moves worth at least BEST_PLAY_MIN_SCORE
+// points, those within BEST_PLAY_TOLERANCE of the top score are best plays,
+// unless another open move costs no more and scores no less.
+// Returns a Set of "idA:idB" keys (empty if no move meets the minimum).
+export function getBestPlays(poolA, poolB, score, target, energy, roundsLeft) {
+  const openA = poolA.filter((n) => !n.used);
+  const openB = poolB.filter((n) => !n.used);
+  const turnsLeft = Math.min(openA.length, openB.length);
+  const best = new Set();
+  if (turnsLeft === 0) return best;
+
+  const scorePace = Math.max(1, (target - score) / turnsLeft);
+  const energyPace = Math.max(1, energy / roundsLeft / turnsLeft);
+
+  const moves = [];
+  let maxValue = -Infinity;
+  for (const a of openA) {
+    for (const b of openB) {
+      const { highWord, lowWord } = computeProduct(a.value, b.value);
+      const value = lowWord / scorePace - highWord / energyPace;
+      moves.push({ key: `${a.id}:${b.id}`, value, highWord, lowWord });
+      if (lowWord >= BEST_PLAY_MIN_SCORE && value > maxValue) maxValue = value;
+    }
+  }
+
+  for (const move of moves) {
+    if (move.lowWord < BEST_PLAY_MIN_SCORE) continue;
+    if (move.value < maxValue - BEST_PLAY_TOLERANCE) continue;
+    const beaten = moves.some(
+      (other) =>
+        other.highWord <= move.highWord &&
+        other.lowWord >= move.lowWord &&
+        (other.highWord < move.highWord || other.lowWord > move.lowWord)
+    );
+    if (!beaten) best.add(move.key);
+  }
+  return best;
 }
 
 export function checkRoundEnd(score, target, energy, poolA, poolB) {

@@ -1,5 +1,18 @@
 import { create } from 'zustand';
-import { generatePool, computeProduct, getTarget, getBudget, getRoundBonus, checkRoundEnd } from './gameLogic';
+import {
+  generatePool,
+  computeProduct,
+  getTarget,
+  getBudget,
+  getRoundBonus,
+  checkRoundEnd,
+  RUN_ROUNDS,
+  RUN_MAX_ENERGY,
+  RUN_TURN_REFUND,
+  getRunTarget,
+  getBestPlays,
+  getBestPlayBonus,
+} from './gameLogic';
 
 let confirmTimer = null;
 
@@ -15,6 +28,7 @@ function cancelConfirm() {
 
 const useGameStore = create((set, get) => ({
   screen: 'menu',
+  mode: 'run',
   round: 1,
   score: 0,
   energy: 0,
@@ -29,9 +43,29 @@ const useGameStore = create((set, get) => ({
   roundBonus: 0,
   turnsAtEnd: 0,
 
-  startGame: () =>
+  startRun: () =>
     set({
       screen: 'game',
+      mode: 'run',
+      round: 1,
+      score: 0,
+      energy: RUN_MAX_ENERGY,
+      bank: 0,
+      phase: 'selecting',
+      poolA: generatePool(),
+      poolB: generatePool(),
+      selectedA: null,
+      selectedB: null,
+      lastResult: null,
+      turn: 0,
+      roundBonus: 0,
+      turnsAtEnd: 0,
+    }),
+
+  startClassic: () =>
+    set({
+      screen: 'game',
+      mode: 'classic',
       round: 1,
       score: 0,
       energy: getBudget(1),
@@ -79,6 +113,21 @@ const useGameStore = create((set, get) => ({
     const b = state.poolB.find((n) => n.id === state.selectedB);
     if (!a || !b) return;
 
+    const isRun = state.mode === 'run';
+    const target = isRun ? getRunTarget(state.round) : getTarget(state.round);
+
+    // Best plays are judged against the board as it was before this move.
+    const wasBest =
+      isRun &&
+      getBestPlays(
+        state.poolA,
+        state.poolB,
+        state.score,
+        target,
+        state.energy,
+        RUN_ROUNDS - state.round + 1
+      ).has(`${a.id}:${b.id}`);
+
     const result = computeProduct(a.value, b.value);
     const newPoolA = state.poolA.map((n) =>
       n.id === state.selectedA ? { ...n, used: true } : n
@@ -88,7 +137,6 @@ const useGameStore = create((set, get) => ({
     );
     const newScore = state.score + result.lowWord;
     const newEnergy = state.energy - result.highWord;
-    const target = getTarget(state.round);
 
     const outcome = checkRoundEnd(newScore, target, newEnergy, newPoolA, newPoolB);
 
@@ -96,21 +144,48 @@ const useGameStore = create((set, get) => ({
       newPoolA.filter((n) => !n.used).length,
       newPoolB.filter((n) => !n.used).length
     );
-    const bonus = outcome === 'win' ? getRoundBonus(turnsRemaining) : 0;
 
-    set({
+    const moveState = {
       poolA: newPoolA,
       poolB: newPoolB,
       selectedA: null,
       selectedB: null,
-      lastResult: result,
       turn: state.turn + 1,
       score: newScore,
-      energy: newEnergy,
-      bank: outcome === 'win' ? state.bank + bonus + newEnergy : state.bank,
-      roundBonus: bonus,
       turnsAtEnd: outcome === 'win' ? turnsRemaining : 0,
-      phase: outcome || 'selecting',
+    };
+
+    if (!isRun) {
+      const bonus = outcome === 'win' ? getRoundBonus(turnsRemaining) : 0;
+      set({
+        ...moveState,
+        lastResult: result,
+        energy: newEnergy,
+        bank: outcome === 'win' ? state.bank + bonus + newEnergy : state.bank,
+        roundBonus: bonus,
+        phase: outcome || 'selecting',
+      });
+      return;
+    }
+
+    // Recovery is applied after the round-end check, so it can't rescue an
+    // overspend. Both sources are capped at max energy.
+    const isBest = wasBest && outcome !== 'loss';
+    const bestBonus = isBest
+      ? Math.min(getBestPlayBonus(result.highWord), RUN_MAX_ENERGY - newEnergy)
+      : 0;
+    const refund =
+      outcome === 'win'
+        ? Math.min(turnsRemaining * RUN_TURN_REFUND, RUN_MAX_ENERGY - newEnergy - bestBonus)
+        : 0;
+    const runWon = outcome === 'win' && state.round === RUN_ROUNDS;
+
+    set({
+      ...moveState,
+      lastResult: { ...result, isBest, bonus: bestBonus },
+      energy: newEnergy + bestBonus + refund,
+      roundBonus: refund,
+      phase: runWon ? 'runWon' : outcome || 'selecting',
     });
   },
 
@@ -121,7 +196,7 @@ const useGameStore = create((set, get) => ({
     set({
       round: newRound,
       score: 0,
-      energy: getBudget(newRound),
+      energy: state.mode === 'run' ? state.energy : getBudget(newRound),
       phase: 'selecting',
       poolA: generatePool(),
       poolB: generatePool(),
@@ -138,6 +213,7 @@ const useGameStore = create((set, get) => ({
     cancelConfirm();
     set({
       screen: 'menu',
+      mode: 'run',
       round: 1,
       score: 0,
       energy: 0,

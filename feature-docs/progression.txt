@@ -1,0 +1,36 @@
+Let's introduce a more concrete progression to this game. We'll keep the existing gameplay as the "Endless Classic" mode, and change the main mode to be this new progressive mode.
+
+This will also require a change to the Main Menu -- rather than just a "Play" button, we'll now have a main "Start Run" button for the progression mode, and a secondary "Endless Classic" button for the old mode.
+
+# Progression
+The idea of this game mode is to have a set number of progressively more difficult rounds that the player has to beat. Once the player has beat, e.g., eight rounds (that's a made up number), they win.
+
+To keep meta-progression clear, we should have a single energy store that persists between rounds. The energy does NOT reset between rounds, but the player does recover some energy from leftover turns and from optimal plays (more on this later).
+
+## MVP
+We can start with just tuning the energy and round targets to create a satisfyingly-scaling run. Later iterations on this game mode will lean into "big-number roguelike" style gameplay (with mechanics/inspiration from games like Zoominoes).
+
+Your first task is to research the distribution of the products to come up with appropriate values for:
+1. Number of rounds for a full run
+2. First-round score target and target scaling function
+3. Total energy store ("max energy")
+
+## Recovering energy
+Let's give the player two ways to recover energy: leftover turns in a round, and optimal play. However, the player can never exceed their max energy.
+
+1. Leftover turns
+This one is simple. Just take the number of leftover turns the player has when completing a round and multiply it by some small factor. Then return the result to the player's energy store.
+
+2. Optimal play
+This is a little more complicated. I would like to give the player a small bonus for playing optimally: this first requires the system to know all products (easy, only at most 81 products to cache on any given turn) and have a comparator function between the hi/lo tuples to get a small set of "best plays." Your first task here is to establish that comparator function/threshold and implement the dynamic recalculation of "best plays" based on the state of the board at the start of the turn.
+
+Here is a possible framework to consider for comparison between (h1, l1) and (h2, l1):
+1. If h1 < h2 AND l1 > l2, then (h1, l1) > (h2, l2).
+2. Else, let hdiff = |h1 - h2| and ldiff = |l1 - l2|. Then compare hdiff to the budget pace and ldiff to the score pace; if the difference between hdiff and budget pace is bigger (or equal to) than the difference between ldiff and the score pace, then the tuple with the lower hi value is better. Otherwise, the tuple with the higher lo value is better.
+
+This is a pretty naive approach, so evaluate it thoroughly and make recommendations before thinking about implementation.
+
+The next thing to take into account is the bonus itself. We want to reward optimal play, but would it be unsatisfying if the player is never in danger of losing any energy simply because the bonus outweighs the low energy cost of optimal plays anyway? I'm not sure -- let's discuss this further and find a good balance for energy bonus.
+
+# Future work: first roguelike elements
+This is out of scope for this feature, but so you have a sense of where we are going: to keep the game interesting, the player should have meta-strategy available to them in between rounds. My initial thought is that they should be offered choices for restricting the domain of factors in one or both pools (possibly by removing certain decades or certain ones digits). But this will require a lot more research and balance to think about which digits are more valuable to restrict than others; and furthermore we will need to re-scale the round targets to account for increased skill expression from the player.

@@ -1,0 +1,16 @@
+Let's add another mode to this game. This will be the "Daily" mode, which is a daily challenge that is the same all day (reset at midnight Pacific Time) for all players (this is only relevant once the app is hosted live on the web).
+
+## Single round
+The daily challenge is a single round of the hilo game.
+
+## Winnable
+The board state and target score must be winnable with skilled play.
+
+## Static
+The game must be the same for all players during the day; the initial board and target score are selected randomly (conditioned on being winnable) at the start of the day and then static throughout the day.
+
+## Stats
+We can show players an "Optimal" and "Par" energy bank based on a solver of the daily game. Or, instead of building a solver, we can just track a leaderboard to show what the best player has done so far and the distribution of players' scores (with a mean or median score) so far.
+
+## Sharability
+Give the players a nice modal with an easy image to share about how they performed. Celebrate if they made par; celebrate even more if they are close to optimal.
