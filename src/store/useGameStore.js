@@ -1,6 +1,18 @@
 import { create } from 'zustand';
 import { generatePool, computeProduct, getTarget, getBudget, getRoundBonus, checkRoundEnd } from './gameLogic';
 
+let confirmTimer = null;
+
+function scheduleConfirm(get) {
+  clearTimeout(confirmTimer);
+  confirmTimer = setTimeout(() => get().confirmSelection(), 150);
+}
+
+function cancelConfirm() {
+  clearTimeout(confirmTimer);
+  confirmTimer = null;
+}
+
 const useGameStore = create((set, get) => ({
   screen: 'menu',
   round: 1,
@@ -43,7 +55,7 @@ const useGameStore = create((set, get) => ({
     set({ selectedA: id });
 
     if (state.selectedB !== null) {
-      setTimeout(() => get().confirmSelection(), 150);
+      scheduleConfirm(get);
     }
   },
 
@@ -55,7 +67,7 @@ const useGameStore = create((set, get) => ({
     set({ selectedB: id });
 
     if (state.selectedA !== null) {
-      setTimeout(() => get().confirmSelection(), 150);
+      scheduleConfirm(get);
     }
   },
 
@@ -103,6 +115,7 @@ const useGameStore = create((set, get) => ({
   },
 
   nextRound: () => {
+    cancelConfirm();
     const state = get();
     const newRound = state.round + 1;
     set({
@@ -121,7 +134,8 @@ const useGameStore = create((set, get) => ({
     });
   },
 
-  resetGame: () =>
+  resetGame: () => {
+    cancelConfirm();
     set({
       screen: 'menu',
       round: 1,
@@ -134,9 +148,11 @@ const useGameStore = create((set, get) => ({
       selectedA: null,
       selectedB: null,
       lastResult: null,
+      turn: 0,
       roundBonus: 0,
       turnsAtEnd: 0,
-    }),
+    });
+  },
 }));
 
 export default useGameStore;

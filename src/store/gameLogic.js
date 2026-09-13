@@ -30,8 +30,9 @@ export function getRoundBonus(turnsRemaining) {
 }
 
 export function checkRoundEnd(score, target, energy, poolA, poolB) {
+  if (energy < 0) return 'loss';
   if (score >= target) return 'win';
-  if (energy <= 0) return 'loss';
+  if (energy === 0) return 'loss';
   const aRemaining = poolA.filter((n) => !n.used).length;
   const bRemaining = poolB.filter((n) => !n.used).length;
   if (aRemaining === 0 || bRemaining === 0) return 'loss';
