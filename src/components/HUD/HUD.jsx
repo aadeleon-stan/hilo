@@ -1,5 +1,6 @@
 import useGameStore from '../../store/useGameStore';
 import { RUN_ROUNDS } from '../../store/gameLogic';
+import SettingsDrawer from '../SettingsDrawer/SettingsDrawer';
 import styles from './HUD.module.css';
 
 export default function HUD() {
@@ -18,7 +19,10 @@ export default function HUD() {
       <span className={styles.info}>
         Round {round}{mode === 'run' && ` / ${RUN_ROUNDS}`}
       </span>
-      <span className={styles.info}>{turnsLeft} turns left</span>
+      <div className={styles.right}>
+        <span className={styles.info}>{turnsLeft} turns left</span>
+        <SettingsDrawer />
+      </div>
     </div>
   );
 }

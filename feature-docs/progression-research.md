@@ -314,12 +314,181 @@ Findings:
 - **Net use separates players from round 3,** but it's only meaningful once the round ends. The refund arrives on the winning move, so mid-round net always looks over par.
 
 **Chosen: both, each where it works.**
-- **During a round:** the hint shows gross spend against the planner's median spend, `[29, 30, 33, 34, 37, 38, 42, 43, 53, 56]`, and turns red over par.
-- **When a round is won:** the popup shows net use against the planner's median net use, `[0, 0, 0, 0, 0, 0, 0, 7, 9, 18]`. That way a fast finish still gets credit.
+- **During a round:** the hint shows gross spend against the planner's median spend, and turns red over par.
+- **When a round is won:** the popup shows net use against the planner's median net use. That way a fast finish still gets credit.
+
+The first tables were spend `[29, 30, 33, 34, 37, 38, 42, 43, 53, 56]` and net `[0, 0, 0, 0, 0, 0, 0, 7, 9, 18]`. They were regenerated after finishing moves became best plays (section 11).
 
 Both tables live in `gameLogic.js` and must be regenerated whenever the run constants change.
 
-## 11. Caveats
+## 11. Playtest findings
+
+From `playtest-notes.md`, checked with the real `getBestPlays` on random mid-round board states.
+
+### Finishing moves are judged on wasted points
+
+**The problem:** the best-play formula values a move's full low word, even the points beyond what the round still needs. Among moves that would finish the round, it can favor a pricier move just because it scores more past the target, and pay the Optimal bonus for it.
+
+**Example:** 35 points needed, with only 29 and 21 open in one pool and 36 and 66 in the other:
+
+| Move | Energy | Points |
+|---|---|---|
+| 29 × 36 = 1044 | 10 | 44 |
+| 29 × 66 = 1914 | 19 | 14 |
+| 21 × 36 = 756 | 7 | 56 |
+| 21 × 66 = 1386 | 13 | 86 |
+
+- **With 120 energy:** the current rule's best play is 21 × 66 (−13 energy), because it scores 51 points more than needed.
+- **With 40 energy:** energy is scarce, so it picks the cheapest finishing move, 21 × 36 (−7).
+
+**How often it happens** (7,635 states where at least one move finishes the round):
+
+| Rule | Best plays include a finishing move costing more than the cheapest one | Best plays include a move that doesn't finish | Mean bonus per best play |
+|---|---|---|---|
+| Current | **46.6%** | 12.1% | 3.77 |
+| Count at most the points still needed (finishing moves exempt from the 20-point minimum) | 0.0% | 18.3% | 2.75 |
+
+Counting at most the needed points fixes the wasted-points problem. But it lowers bonuses, making runs harder, and it still sometimes prefers a move that doesn't finish, because the formula ignores the leftover-turn refund for finishing early.
+
+**Chosen fix (implemented 2026-09-14):** keep the current best plays, and *also* count every move that finishes the round as a best play. This keeps the existing bonuses, so the tuning doesn't get harder, and finishing moves always earn the bonus.
+- **Finishing moves qualify regardless of the 20-point minimum.** The minimum exists to keep 0-point moves from being tagged optimal, and a finishing move by definition scores everything the round still needs.
+- **Runs will likely get easier:** the last move of most rounds finishes it, so almost every round now pays an extra bonus of up to 6. Re-run the win-rate simulation (section 9) and regenerate the energy par tables (section 10).
+
+**Logic check** (5,000 random board states, 3,070 with a finishing move), comparing the new `getBestPlays` with a copy of the old rule:
+- **Correctness:**
+  - no finishing move was left unmarked
+  - no old best play was dropped
+  - no other new best plays were added
+  - no empty sets
+- **Much larger sets:** on boards with a finishing move, the mean best-play set grew from **1.08 to 17.88 moves**. When only a few points are needed, most moves finish the round.
+- **Bigger bonuses:** the mean bonus per best play on those boards rose from 3.88 to 5.42.
+- **Note's example** (35 points needed, 120 energy): old best plays were [21 × 66]; new best plays are [21 × 66, 29 × 36, 21 × 36].
+
+**Side effects:**
+- **The Optimal tag and bonus are nearly automatic** on a round's last move.
+- **Optimal indicators becomes noisy:** it glows about 18 pairs, cycling through its 5 colors, when a finishing move is available.
+
+**Refinement (2026-09-14): only the cheapest finishing moves.** Counting every finishing move made the Optimal tag nearly automatic and flooded the Optimal indicators. So the rule now adds only the cheapest finishing move or moves, on top of the scored best plays.
+- **Ties** for cheapest all count.
+- **Pricier finishing moves** stay best plays only if the scored rule already picked them.
+
+Logic check (5,000 random states, 3,106 with a finishing move):
+
+| Check | Result |
+|---|---|
+| Real `getBestPlays` vs this rule | 0 mismatches |
+| Pricier finishing moves added beyond the scored rule | 0 |
+| Mean best-play set size on finishing boards | 1.09 original → **1.76** (17.88 when every finishing move counted) |
+| Finishing boards with a tie for cheapest | 12.7% |
+
+**Final rule (2026-09-14): the bonus and the glow use different sets.** The cheapest-only refinement above came from misreading the intent. The intended rule:
+- **Bonus and Optimal tag (`getBestPlays`):** the scored best plays, plus the cheapest finishing move or moves, plus any finishing move that costs no more than the priciest scored best play. The cheapest finishing move always counts, because on 9.7% of finishing boards it costs more than that limit.
+- **Optimal indicators glow (`getHighlightedPlays`):** only the scored best plays plus the cheapest finishing move or moves, so late-round boards stay readable for playtesting. It's always a subset of the bonus set.
+
+Logic check (6,000 random states, 3,562 with a finishing move), comparing both functions with an independent copy of the rules:
+
+| Check | Result |
+|---|---|
+| `getBestPlays` mismatches | 0 |
+| `getHighlightedPlays` mismatches | 0 |
+| Glowing moves that don't earn the bonus | 0 |
+| Mean moves on finishing boards: earn the bonus / glow | 3.29 / 1.70 |
+| Finishing boards where some bonus-earning moves don't glow | 30.5% |
+| Note's example (35 needed, 120 energy): earn the bonus / glow | [21 × 36, 21 × 66, 29 × 36] / [21 × 36, 21 × 66] |
+
+**Tuning re-check with every finishing move counted** (superseded by the refinement above; real game logic, bonuses applied per move as in the store, 300 runs each):
+
+| Player | Win | Deaths % by round 1–10 |
+|---|---|---|
+| Planner | 99% | 0/0/0/0/0/0/0/0/1/0 |
+| Average | 65% | 0/0/0/0/0/1/4/4/11/16 |
+
+**Correction:** this single run was first read as "win rates didn't change", with the extra bonus explained as often lost to the max-energy cap. Both were wrong:
+- **Win rates:** the energy-flow comparison below shows this version was about 4 points easier for the average player.
+- **The cap:** best-play bonuses can never be lost to it.
+
+**Par tables regenerated for that version** (superseded by the tables below):
+
+| Round | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Spend par | 33 | 34 | 35 | 37 | 37 | 39 | 41 | 43 | 51 | 57 |
+| Net par | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 3 | 10 | 14 |
+
+- **Spend par rose by up to 4 in rounds 1–4:** since finishing moves always pay the bonus, the planner spends a little more to finish rounds quickly.
+- **Later rounds** are within sampling noise of the first tables.
+
+### Where the energy goes under each rule
+
+Real game logic, bonuses and refunds applied per move as in the store, 300 runs per rule and player. Values are means per cleared round: rounds 1–5 / rounds 6–10.
+
+| Rule | Player | Win | Spent | Bonus gained | …from finishing-only plays | Refund gained | Refund lost to cap | Energy entering the losing round (median) |
+|---|---|---|---|---|---|---|---|---|
+| Original | Planner | 99.3% | 35.6 / 49.9 | 9.0 / 15.6 | 0 / 0 | 24.0 / 23.1 | 3.6 / 0.4 | 59 |
+| Original | Average | 61.3% | 39.8 / 55.5 | 7.5 / 12.6 | 0 / 0 | 23.8 / 23.4 | 3.8 / 0.1 | 49 |
+| Every finishing move | Planner | 98.0% | 37.7 / 50.3 | 11.4 / 17.5 | 3.9 / 3.1 | 24.0 / 22.7 | 3.9 / 0.8 | 34 |
+| Every finishing move | Average | 68.7% | 39.2 / 56.6 | 9.5 / 14.4 | 1.8 / 1.6 | 22.3 / 23.1 | 5.2 / 0.2 | 51 |
+| Cheapest finishing move only | Planner | 99.0% | 35.5 / 49.9 | 9.8 / 17.1 | 2.1 / 2.8 | 23.9 / 22.7 | 3.9 / 0.8 | 62 |
+| Cheapest finishing move only | Average | 64.3% | 39.0 / 56.4 | 7.9 / 13.4 | 0.6 / 0.6 | 23.1 / 23.2 | 4.4 / 0.2 | 53 |
+| **Final rule (current): cheapest finish + finishes within the limit** | Planner | 99.3% | 36.0 / 50.5 | 10.1 / 17.4 | 2.4 / 2.9 | 23.7 / 22.6 | 4.1 / 0.9 | 58 |
+| **Final rule (current): cheapest finish + finishes within the limit** | Average | 64.7% | 39.3 / 55.7 | 8.7 / 14.2 | 1.2 / 1.2 | 23.2 / 23.2 | 4.4 / 0.1 | 50 |
+
+The same original rule measured 65% for the average player in an earlier 200-run check, and "every finishing move" measured 65% in an earlier 300-run check. Sampling error is about ±3 points, so the best estimates are:
+
+| Rule | Average-player win (best estimate) | Change |
+|---|---|---|
+| Original | ≈ 63% | — |
+| Every finishing move | ≈ 67% | about 4 points easier |
+| Cheapest finishing move only | ≈ 64% | about 1 point easier |
+| **Final rule (current)** | ≈ 65% | about 2 points easier |
+
+**Why difficulty barely moves:**
+1. **Best-play bonuses can never be lost to the energy cap.** The bonus is added right after the move's cost is paid, and it's never larger than that cost (half, up to 6). So it can't push energy above where it was before the move. All of the cap loss (0.1–5.2 per round) comes from the leftover-turn refund.
+2. **Early bonuses mostly turn into refund lost to the cap.** Early in a run, energy sits near 200. Extra bonus raises it, so more of the round-end refund goes over 200 and is lost.
+   - **Every finishing move:** the average player's early refund lost to the cap rose from 3.8 to 5.2 per round, which cancels about 1.4 of the 1.8 extra bonus.
+   - **The real gain is in rounds 6–10,** where energy is well below the cap. There the extra bonus is only 1.6 per round (every finishing move) or 0.6 (cheapest).
+3. **The average player rarely plays the cheapest finishing move.** Its greedy scoring (points − 1.5·energy) favors high-scoring moves, so it earns only 0.6 extra energy per round under the cheapest-only rule and 1.2 under the final rule, roughly 6–12 over a run. The planner deliberately finishes cheaply and earns 2–3 per round, which is the behavior the tag should reward.
+4. **Extra energy rarely changes whether a run is lost.** Average players enter their losing round with a median of about 50 energy, and rounds 6–10 cost about 56 energy on average. A handful of extra energy over the whole run seldom covers that gap.
+5. **The planner is already at its ceiling** (98–99% wins), so its larger gains have nowhere to show up.
+
+### Current energy par tables
+
+From the final-rule planner runs above, now in `gameLogic.js`:
+
+| Round | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Spend par | 30 | 30 | 33 | 37 | 38 | 38 | 41 | 46 | 50 | 57 |
+| Net par | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 6 | 8 | 15 |
+
+These are within sampling noise of the original tables (section 10).
+
+### Best plays usually involve the smallest number
+
+**The hypothesis:** a strong strategy is to find the smallest open number on the board and compare its products with the other pool.
+
+Results over 10,000 random mid-round states:
+
+| States | Best plays use the smallest open number | Use the smallest number in either pool | Are the pair of both pools' smallest numbers | "Smallest number + its best partner" is a best play |
+|---|---|---|---|---|
+| All | 74% | 91% | 38% | 74% |
+| No finishing move available | 79% | 95% | 44% | 79% |
+| A finishing move is available | 62% | 83% | 24% | 62% |
+| Early run (rounds 1–5) | 77% | 93% | 42% | 77% |
+| Late run (rounds 6–10) | 72% | 89% | 34% | 72% |
+
+**Mostly confirmed:** the shortcut finds a best play about 3 times in 4, and nearly every best play uses one pool's smallest number.
+
+Why:
+- **Energy cost** (the high word) grows with both numbers.
+- **Points** (the low word) are close to random regardless of cost (section 2).
+- **Energy is weighted heavily:** `energyPace = energy / roundsLeft / turnsLeft` is small, so cheap moves dominate.
+
+**Design concern:** optimal play is fairly formulaic. Two possible levers:
+- **Future pool restrictions** (removing decades, per `progression.txt`) would disrupt this shortcut.
+- **Weighting energy less** in the formula. This needs its own tuning research.
+
+**Decision (2026-09-14): keep the shortcut for now.** A simple heuristic is useful for human players while the game is being developed. **Revisit it when building the Daily mode** (`daily.txt`): a single fixed board scored against "Optimal" and "Par" energy could make a formulaic best play too easy to find, so the best-play formula or board generation may need tuning then.
+
+## 12. Caveats
 
 - **Simulated, not human, players.** The planner is a stand-in for strong play; a human "average" player may play better or worse than the one-move-at-a-time model with λ = 1.5.
 - **Tuning is sensitive.** Each +5 on the starting target costs the average player roughly 10 points of win rate. All run constants sit together at the top of `src/store/gameLogic.js` for easy adjustment.

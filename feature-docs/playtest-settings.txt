@@ -1,0 +1,10 @@
+Let's add a couple settings to make playtesting easier while we're developing.
+
+## Easy mode
+Displays the product on hover so the player doesn't have to do the math themselves.
+
+## Optimal indicators
+Highlights the optimal play(s) with a soft glow around the factor tiles. If there is more than one optimal play, uses different colors for each pair.
+
+# Settings
+These settings should both be toggles/checkboxes available in the main menu and on the sidebar of the run mode.

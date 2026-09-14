@@ -1,7 +1,9 @@
 import { useRef, useState } from 'react';
 import useGameStore from '../store/useGameStore';
 import { RUN_ROUNDS } from '../store/gameLogic';
+import { SETTINGS_ENABLED } from '../store/useSettingsStore';
 import HowToPlay from '../components/HowToPlay/HowToPlay';
+import SettingsToggles from '../components/SettingsToggles/SettingsToggles';
 import styles from './MainMenu.module.css';
 
 export default function MainMenu() {
@@ -38,6 +40,15 @@ export default function MainMenu() {
           How to play
         </button>
       </div>
+
+      {SETTINGS_ENABLED && (
+        <section className={styles.devSettings} aria-labelledby="dev-settings-title">
+          <h2 id="dev-settings-title" className={styles.devTitle}>
+            Dev settings
+          </h2>
+          <SettingsToggles />
+        </section>
+      )}
 
       {showHowTo && <HowToPlay onClose={closeHowTo} onStartRun={startRun} />}
     </div>

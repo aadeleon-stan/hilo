@@ -88,3 +88,21 @@
   outline-offset: 2px;
   border-radius: 0.25rem;
 }
+
+/* Dev builds only; dashed border marks it as not part of the real game. */
+.devSettings {
+  width: min(18rem, 100%);
+  margin-top: 1rem;
+  padding: 1rem 1.25rem;
+  border: 1px dashed var(--border);
+  border-radius: 0.75rem;
+}
+
+.devTitle {
+  margin-bottom: 0.75rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}

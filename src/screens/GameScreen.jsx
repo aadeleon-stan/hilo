@@ -1,9 +1,14 @@
+import { useMemo, useState } from 'react';
 import useGameStore from '../store/useGameStore';
+import { useSetting } from '../store/useSettingsStore';
 import {
+  computeProduct,
+  getHighlightedPlays,
   getTarget,
   getBudget,
   getRunTarget,
   getRunSpendPar,
+  RUN_ROUNDS,
   RUN_MAX_ENERGY,
 } from '../store/gameLogic';
 import HUD from '../components/HUD/HUD';
@@ -11,6 +16,7 @@ import Pool from '../components/Pool/Pool';
 import ProductReveal from '../components/ProductReveal/ProductReveal';
 import StatBar from '../components/StatBar/StatBar';
 import Overlay from '../components/Overlay/Overlay';
+import { buildOptimalGlows } from './optimalGlows';
 import styles from './GameScreen.module.css';
 
 function getQuality(lowWord, highWord) {
@@ -30,8 +36,40 @@ function getResultLabel(result, isRun) {
   return qualityLabels[getQuality(result.lowWord, result.highWord)];
 }
 
+// Easy mode: products of the hovered tile (or, failing that, the selected
+// tile) with every open tile in the other pool.
+function getPreviews(poolA, poolB, hovered, selectedA, selectedB) {
+  const openTile = (pool, id) => {
+    const tile = pool.find((n) => n.id === id);
+    return tile && !tile.used ? tile : null;
+  };
+
+  let side = null;
+  let source = null;
+  if (hovered) {
+    side = hovered.pool;
+    source = openTile(side === 'A' ? poolA : poolB, hovered.id);
+  }
+  if (!source && selectedA !== null) {
+    side = 'A';
+    source = openTile(poolA, selectedA);
+  }
+  if (!source && selectedB !== null) {
+    side = 'B';
+    source = openTile(poolB, selectedB);
+  }
+  if (!source) return {};
+
+  const previews = {};
+  for (const tile of side === 'A' ? poolB : poolA) {
+    if (!tile.used) previews[tile.id] = computeProduct(source.value, tile.value);
+  }
+  return side === 'A' ? { previewsB: previews } : { previewsA: previews };
+}
+
 export default function GameScreen() {
   const mode = useGameStore((s) => s.mode);
+  const phase = useGameStore((s) => s.phase);
   const poolA = useGameStore((s) => s.poolA);
   const poolB = useGameStore((s) => s.poolB);
   const selectedA = useGameStore((s) => s.selectedA);
@@ -45,6 +83,10 @@ export default function GameScreen() {
   const roundSpent = useGameStore((s) => s.roundSpent);
   const bank = useGameStore((s) => s.bank);
   const round = useGameStore((s) => s.round);
+
+  const easyMode = useSetting('easyMode');
+  const showOptimal = useSetting('showOptimal');
+  const [hovered, setHovered] = useState(null);
 
   const isRun = mode === 'run';
   const target = isRun ? getRunTarget(round) : getTarget(round);
@@ -75,6 +117,25 @@ export default function GameScreen() {
   const awaitingA = selectedB !== null && selectedA === null;
   const awaitingB = selectedA !== null && selectedB === null;
 
+  const { previewsA, previewsB } = easyMode
+    ? getPreviews(poolA, poolB, hovered, selectedA, selectedB)
+    : {};
+
+  // Optimal indicators: the store's best plays, trimmed to the cheapest
+  // finishing move(s) so late-round boards stay readable.
+  const bestKeys = useMemo(() => {
+    if (!showOptimal || !isRun || phase !== 'selecting') return null;
+    return getHighlightedPlays(
+      poolA,
+      poolB,
+      score,
+      getRunTarget(round),
+      energy,
+      RUN_ROUNDS - round + 1
+    );
+  }, [showOptimal, isRun, phase, poolA, poolB, score, energy, round]);
+  const { glowsA, glowsB } = bestKeys ? buildOptimalGlows(bestKeys) : {};
+
   return (
     <div className={styles.container}>
       <HUD />
@@ -85,6 +146,9 @@ export default function GameScreen() {
           selectedId={selectedA}
           onSelect={selectFromPoolA}
           awaitingSelection={awaitingA}
+          onHover={easyMode ? (id) => setHovered(id === null ? null : { pool: 'A', id }) : undefined}
+          previews={previewsA}
+          glows={glowsA}
         />
 
         <div className={styles.times}>&times;</div>
@@ -94,6 +158,9 @@ export default function GameScreen() {
           selectedId={selectedB}
           onSelect={selectFromPoolB}
           awaitingSelection={awaitingB}
+          onHover={easyMode ? (id) => setHovered(id === null ? null : { pool: 'B', id }) : undefined}
+          previews={previewsB}
+          glows={glowsB}
         />
       </div>
 

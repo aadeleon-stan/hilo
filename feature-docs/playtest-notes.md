@@ -1,0 +1,3 @@
+Optimal plays don't take into account lethal moves -- if you only need 35 score to finish the round, then a product of 1044 (29 * 36) is better than a product of 1386 (21 * 66). But selecting 1386 ends up better because of the energy refund, which seems arbitrary in this scenario. TODO: fix this?
+
+Generally seems to be the case that an optimal play (when not searching for lethal) involves the smallest number in both pools. This means a generally good strategy is to look for the smallest number on the board and then just comparing its products across all numbers in the other pool. TODO: verify this

@@ -43,9 +43,9 @@ export function getRunTarget(round) {
 // Per-round median energy for a strong (planning) player in simulated runs:
 // gross spend (sum of high words) and net use (spend minus bonus and refund).
 // Derived from the constants above; regenerate if run tuning changes.
-// See feature-docs/progression-research.md, section 10.
-const RUN_SPEND_PAR = [29, 30, 33, 34, 37, 38, 42, 43, 53, 56];
-const RUN_NET_PAR = [0, 0, 0, 0, 0, 0, 0, 7, 9, 18];
+// See feature-docs/progression-research.md, sections 10 and 11.
+const RUN_SPEND_PAR = [30, 30, 33, 37, 38, 38, 41, 46, 50, 57];
+const RUN_NET_PAR = [0, 0, 0, 0, 0, 0, 0, 6, 8, 15];
 
 export function getRunSpendPar(round) {
   return RUN_SPEND_PAR[round - 1];
@@ -60,16 +60,15 @@ export function getBestPlayBonus(highWord) {
 }
 
 // Scores every open move as points per needed score pace minus cost per
-// affordable energy pace. Among moves worth at least BEST_PLAY_MIN_SCORE
-// points, those within BEST_PLAY_TOLERANCE of the top score are best plays,
-// unless another open move costs no more and scores no less.
-// Returns a Set of "idA:idB" keys (empty if no move meets the minimum).
-export function getBestPlays(poolA, poolB, score, target, energy, roundsLeft) {
+// affordable energy pace. The scored best plays are the moves worth at least
+// BEST_PLAY_MIN_SCORE points within BEST_PLAY_TOLERANCE of the top score,
+// unless another open move costs no more and scores no less. Also returns the
+// open moves that would finish the round.
+function rankPlays(poolA, poolB, score, target, energy, roundsLeft) {
   const openA = poolA.filter((n) => !n.used);
   const openB = poolB.filter((n) => !n.used);
   const turnsLeft = Math.min(openA.length, openB.length);
-  const best = new Set();
-  if (turnsLeft === 0) return best;
+  if (turnsLeft === 0) return { scored: [], finishing: [] };
 
   const scorePace = Math.max(1, (target - score) / turnsLeft);
   const energyPace = Math.max(1, energy / roundsLeft / turnsLeft);
@@ -85,18 +84,48 @@ export function getBestPlays(poolA, poolB, score, target, energy, roundsLeft) {
     }
   }
 
-  for (const move of moves) {
-    if (move.lowWord < BEST_PLAY_MIN_SCORE) continue;
-    if (move.value < maxValue - BEST_PLAY_TOLERANCE) continue;
-    const beaten = moves.some(
-      (other) =>
-        other.highWord <= move.highWord &&
-        other.lowWord >= move.lowWord &&
-        (other.highWord < move.highWord || other.lowWord > move.lowWord)
-    );
-    if (!beaten) best.add(move.key);
-  }
-  return best;
+  const scored = moves.filter(
+    (move) =>
+      move.lowWord >= BEST_PLAY_MIN_SCORE &&
+      move.value >= maxValue - BEST_PLAY_TOLERANCE &&
+      !moves.some(
+        (other) =>
+          other.highWord <= move.highWord &&
+          other.lowWord >= move.lowWord &&
+          (other.highWord < move.highWord || other.lowWord > move.lowWord)
+      )
+  );
+  const finishing = moves.filter((move) => move.lowWord >= target - score);
+  return { scored, finishing };
+}
+
+// The cheapest of the given moves; ties all count.
+function cheapestOf(moves) {
+  if (moves.length === 0) return [];
+  const cheapest = Math.min(...moves.map((move) => move.highWord));
+  return moves.filter((move) => move.highWord === cheapest);
+}
+
+// Moves that earn the Optimal tag and bonus: the scored best plays, the
+// cheapest finishing move(s), and any finishing move that costs no more than
+// the priciest scored best play. Returns a Set of "idA:idB" keys.
+export function getBestPlays(poolA, poolB, score, target, energy, roundsLeft) {
+  const { scored, finishing } = rankPlays(poolA, poolB, score, target, energy, roundsLeft);
+  const limit = Math.max(...scored.map((move) => move.highWord));
+  const plays = [
+    ...scored,
+    ...cheapestOf(finishing),
+    ...finishing.filter((move) => move.highWord <= limit),
+  ];
+  return new Set(plays.map((move) => move.key));
+}
+
+// Moves the Optimal indicators playtest setting glows: the scored best plays
+// and only the cheapest finishing move(s), so late-round boards stay readable.
+// Always a subset of getBestPlays.
+export function getHighlightedPlays(poolA, poolB, score, target, energy, roundsLeft) {
+  const { scored, finishing } = rankPlays(poolA, poolB, score, target, energy, roundsLeft);
+  return new Set([...scored, ...cheapestOf(finishing)].map((move) => move.key));
 }
 
 export function checkRoundEnd(score, target, energy, poolA, poolB) {

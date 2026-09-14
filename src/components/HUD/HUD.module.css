@@ -7,6 +7,12 @@
   border-bottom: 1px solid var(--border);
 }
 
+.right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
 .info {
   font-size: 0.85rem;
   font-weight: 600;

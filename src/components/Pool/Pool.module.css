@@ -12,6 +12,11 @@
 }
 
 .cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.1;
   width: 4rem;
   height: 4rem;
   font-size: 1.25rem;
@@ -44,6 +49,23 @@
 
 .cell.awaiting {
   animation: subtlePulse 1.5s ease-in-out infinite;
+}
+
+/* Easy mode product label: energy digits gold, points digits cyan, matching
+   ProductReveal. */
+.preview {
+  margin-top: 0.15rem;
+  font-size: 0.65rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.previewHi {
+  color: var(--gold);
+}
+
+.previewLo {
+  color: var(--accent);
 }
 
 @keyframes subtlePulse {
