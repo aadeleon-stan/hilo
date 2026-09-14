@@ -1,10 +1,19 @@
+import { useRef, useState } from 'react';
 import useGameStore from '../store/useGameStore';
 import { RUN_ROUNDS } from '../store/gameLogic';
+import HowToPlay from '../components/HowToPlay/HowToPlay';
 import styles from './MainMenu.module.css';
 
 export default function MainMenu() {
   const startRun = useGameStore((s) => s.startRun);
   const startClassic = useGameStore((s) => s.startClassic);
+  const [showHowTo, setShowHowTo] = useState(false);
+  const howToRef = useRef(null);
+
+  function closeHowTo() {
+    setShowHowTo(false);
+    howToRef.current?.focus();
+  }
 
   return (
     <div className={styles.container}>
@@ -21,7 +30,16 @@ export default function MainMenu() {
         <button className={styles.secondaryBtn} onClick={startClassic}>
           Endless Classic
         </button>
+        <button
+          ref={howToRef}
+          className={styles.linkBtn}
+          onClick={() => setShowHowTo(true)}
+        >
+          How to play
+        </button>
       </div>
+
+      {showHowTo && <HowToPlay onClose={closeHowTo} onStartRun={startRun} />}
     </div>
   );
 }

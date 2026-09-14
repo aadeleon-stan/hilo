@@ -1,0 +1,75 @@
+.label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  opacity: 0.6;
+  align-self: flex-start;
+  margin-bottom: -0.25rem;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.track {
+  flex: 1;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.score .track {
+  height: 1rem;
+  border-radius: 0.5rem;
+}
+
+.energy {
+  margin-top: 0.25rem;
+}
+
+.energy .track {
+  height: 0.75rem;
+  border-radius: 0.375rem;
+}
+
+.track.pulse {
+  animation: pulse 1s ease-in-out infinite;
+}
+
+/* By default the fill waits for ProductReveal's captions (1.05s). */
+.fill {
+  height: 100%;
+  border-radius: inherit;
+  transition:
+    width 0.3s ease var(--fill-delay, 1.05s),
+    background 0.3s ease var(--fill-delay, 1.05s);
+}
+
+.text {
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.score .text {
+  color: var(--text-dim);
+}
+
+.energy .text {
+  color: var(--gold);
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fill {
+    transition-delay: 0s;
+  }
+}

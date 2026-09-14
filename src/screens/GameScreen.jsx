@@ -9,6 +9,7 @@ import {
 import HUD from '../components/HUD/HUD';
 import Pool from '../components/Pool/Pool';
 import ProductReveal from '../components/ProductReveal/ProductReveal';
+import StatBar from '../components/StatBar/StatBar';
 import Overlay from '../components/Overlay/Overlay';
 import styles from './GameScreen.module.css';
 
@@ -104,16 +105,12 @@ export default function GameScreen() {
       />
 
       <div className={styles.statusPanel}>
-        <span className={styles.barLabel}>Score</span>
-        <div className={styles.progressRow}>
-          <div className={styles.bar}>
-            <div
-              className={styles.fill}
-              style={{ width: `${pct}%`, background: fillColor }}
-            />
-          </div>
-          <span className={styles.scoreText}>{score} / {target}</span>
-        </div>
+        <StatBar
+          label="Score"
+          pct={pct}
+          color={fillColor}
+          text={`${score} / ${target}`}
+        />
         {isRun ? (
           <span className={`${styles.hint} ${roundSpent > spendPar ? styles.overPar : ''}`}>
             Energy spent this round: {roundSpent} · par ~{spendPar}
@@ -126,18 +123,14 @@ export default function GameScreen() {
             </span>
           )
         )}
-        <span className={styles.barLabel}>Energy</span>
-        <div className={styles.energyRow}>
-          <div className={`${styles.energyBar} ${energyLow ? styles.energyLow : ''}`}>
-            <div
-              className={styles.energyFill}
-              style={{ width: `${energyPct}%`, background: energyColor }}
-            />
-          </div>
-          <span className={styles.energyText}>
-            {isRun ? `${energy} / ${maxEnergy}` : `${energy} energy`}
-          </span>
-        </div>
+        <StatBar
+          variant="energy"
+          label="Energy"
+          pct={energyPct}
+          color={energyColor}
+          pulse={energyLow}
+          text={isRun ? `${energy} / ${maxEnergy}` : `${energy} energy`}
+        />
         {!isRun && <span className={styles.bank}>Bank: {bank.toLocaleString()}</span>}
       </div>
 
