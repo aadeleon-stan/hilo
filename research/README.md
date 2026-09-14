@@ -27,7 +27,7 @@ Notes for continuing research on another machine or in a new session. The goal i
 - odds and guarantee upgrades
 - a constrained start with decade unlocks
 
-It lists the harness changes to make first.
+The harness changes it required are done (weighted draws, per-pool range guarantees, `targetScale`, `startConfig` range presets, and `parallel.mjs` for multi-core runs) and validated: `harness-selftest.mjs` passes, and `baseline.mjs` still reproduces the original win rates (average 66.0% ±2.7 / planner 99.0% ±0.6 on 300 runs each, both within noise of the table below). Next: S1a and S2e (sim-plan-2.md §Order and acceptance).
 
 ## Decisions the user has made (keep to these)
 
@@ -53,7 +53,9 @@ All scripts import the shipped rules from `src/store/gameLogic.js`. Run them fro
 
 | Script | What it does | Example |
 |---|---|---|
-| `upgrade-sim.mjs` | **Harness**, a library. Mirrors `useGameStore.confirmSelection` for Run mode, with configurable pools, energy rules, target offset, per-move energy/points modifiers and an upgrade hook after each round won. Exports `baseConfig`, `simulateRun`, `runMany`, `summarize`, `players` (`average`, `planner`), `greedyRound`, `plannerRound`, `applyMove`. | imported by the others |
+| `upgrade-sim.mjs` | **Harness**, a library. Mirrors `useGameStore.confirmSelection` for Run mode, with configurable pools, energy rules, target scale/offset, per-move energy/points modifiers and an upgrade hook after each round won. Exports `baseConfig`, `startConfig`, `drawPool`, `simulateRun`, `runMany`, `runManyRaw`, `runShardAware`, `myShare`, `summarize`, `players` (`average`, `planner`), `greedyRound`, `plannerRound`, `applyMove`. | imported by the others |
+| `harness-selftest.mjs` | Validates the harness itself: weighted-draw frequencies, per-pool guarantees (including that over-budget ones throw), `startConfig` ranges. Run after any harness change, before trusting new results. | `node harness-selftest.mjs` |
+| `parallel.mjs` | Launcher: runs a script across `SHARDS` processes (one per core) and merges the raw results it sends back over IPC. The target script must use `runShardAware` in place of `runMany` and skip printing when it returns `null`. | `SHARDS=6 node parallel.mjs some-sim.mjs` |
 | `draft-pool.mjs` | Round 1 drafting offer pool (12 stackable upgrades with measured values), picking strategies and `draftHook`. | imported by `drafting.mjs` |
 | `baseline.mjs` | Harness validation with no upgrades. | `PLAYERS=average,planner N=300 node baseline.mjs` |
 | `single-round-restrictions.mjs` | Single-round cost with decades or ones digits removed. | `N=1500 node single-round-restrictions.mjs` |
@@ -79,8 +81,8 @@ Planner medians of energy spent and net energy per round should be close to `RUN
 
 **Performance:**
 - **One core per process:** the harness is single-threaded. Each process peaks at about 120 MB.
-- **Parallelism:** run one process per physical core. On a Ryzen 5 7600 (6 cores / 12 threads), 6–10 processes at once is reasonable.
-- **This Mac:** an A18 Pro with only 2 performance cores, so anything beyond 2 processes mostly lands on efficiency cores.
+- **Parallelism:** run one process per physical core. This machine is a Ryzen 5 5600 (6 cores / 12 threads, corrected from the 7600 noted earlier — same core/thread count), so 6–10 processes at once is reasonable. Use `parallel.mjs` (see the scripts table) rather than hand-launching shards: `SHARDS=6 node parallel.mjs some-sim.mjs`, with any other env vars the script reads (`N=`, `PLAYER=`, ...) passed through. A script opts in by calling `runShardAware(player, cfgFactory, n, options)` instead of `runMany`, and skipping its own printing when that returns `null` (the launcher merges and prints the combined summary).
+- **That Mac:** an A18 Pro with only 2 performance cores, so anything beyond 2 processes mostly lands on efficiency cores.
 - **Long runs:** use background processes. Close memory-heavy apps; the Vite dev server was stopped twice for low memory during long runs.
 
 **Sampling error:** about ±2.7 points at 300 runs near 65%, ±3.4 at 200 runs. Treat differences under about 2× the error as noise.

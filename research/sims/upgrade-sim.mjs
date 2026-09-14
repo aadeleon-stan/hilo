@@ -22,8 +22,13 @@ export function baseConfig() {
     domainB: ALL_VALUES,
     poolSize: 9,
     targetExtra: 0, // added to every round target (harder difficulty for planner tests)
+    targetScale: 1, // (target + targetExtra) * targetScale — for constrained-start retunes
     allowRepeats: false,
-    guaranteeTens: false, // each pool contains at least one 10–19 value
+    guaranteeTens: false, // shorthand for guaranteesA/B += {min:10, max:19, count:1} in both pools
+    guaranteesA: [], // list of { min, max, count }: pool A always has at least `count` values in [min, max]
+    guaranteesB: [],
+    weightsA: null, // (value) => relative weight, or a 90-entry array indexed by value-10; default uniform
+    weightsB: null,
     maxEnergy: RUN_MAX_ENERGY,
     refundPerTurn: RUN_TURN_REFUND,
     refundMultiplier: 1, // e.g. 1.4 for a "+40% round-end refund" relic
@@ -35,18 +40,67 @@ export function baseConfig() {
   };
 }
 
+// A starting-range preset, e.g. startConfig([40, 79]) for a constrained-start upgrade.
+// Spread over baseConfig(): { ...baseConfig(), ...startConfig([40, 79]) }.
+export function startConfig([lo, hi]) {
+  const domain = Array.from({ length: hi - lo + 1 }, (_, i) => lo + i);
+  return { domainA: domain, domainB: domain };
+}
+
 const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
-function drawPool(cfg, domain, kept) {
+function weightOf(cfg, which) {
+  const w = which === 'A' ? cfg.weightsA : cfg.weightsB;
+  if (!w) return () => 1;
+  return typeof w === 'function' ? w : (v) => w[v - 10] ?? 0;
+}
+
+// Weighted pick without replacement: proportional to weight among `candidates`.
+function pickWeighted(candidates, wf) {
+  if (candidates.length === 1) return candidates[0];
+  const weights = candidates.map(wf);
+  const total = weights.reduce((a, b) => a + b, 0);
+  if (total <= 0) return pick(candidates);
+  let r = Math.random() * total;
+  for (let i = 0; i < candidates.length; i++) {
+    r -= weights[i];
+    if (r <= 0) return candidates[i];
+  }
+  return candidates[candidates.length - 1];
+}
+
+function effectiveGuarantees(cfg, which) {
+  const explicit = (which === 'A' ? cfg.guaranteesA : cfg.guaranteesB) || [];
+  return cfg.guaranteeTens ? [...explicit, { min: 10, max: 19, count: 1 }] : explicit;
+}
+
+function assertGuaranteesFit(cfg, which, domain, guarantees) {
+  const total = guarantees.reduce((a, g) => a + g.count, 0);
+  if (total > cfg.poolSize) throw new Error(`pool ${which}: guarantees ask for ${total} values but poolSize is ${cfg.poolSize}`);
+  for (const g of guarantees) {
+    const avail = domain.filter((v) => v >= g.min && v <= g.max).length;
+    if (avail < g.count) throw new Error(`pool ${which}: guarantee needs ${g.count} values in [${g.min},${g.max}] but domain has only ${avail}`);
+  }
+}
+
+export function drawPool(cfg, which, domain, kept) {
+  const guarantees = effectiveGuarantees(cfg, which);
+  if (guarantees.length) assertGuaranteesFit(cfg, which, domain, guarantees);
+  const wf = weightOf(cfg, which);
   const values = [];
   if (kept !== undefined) values.push(kept);
-  if (cfg.guaranteeTens && !values.some((v) => v < 20)) {
-    const tens = domain.filter((v) => v < 20);
-    if (tens.length) values.push(pick(tens));
+  for (const g of guarantees) {
+    let have = values.filter((v) => v >= g.min && v <= g.max).length;
+    while (have < g.count && values.length < cfg.poolSize) {
+      const candidates = domain.filter((v) => v >= g.min && v <= g.max && (cfg.allowRepeats || !values.includes(v)));
+      if (!candidates.length) break;
+      values.push(pickWeighted(candidates, wf));
+      have++;
+    }
   }
   while (values.length < cfg.poolSize) {
-    const v = pick(domain);
-    if (cfg.allowRepeats || !values.includes(v)) values.push(v);
+    const candidates = cfg.allowRepeats ? domain : domain.filter((v) => !values.includes(v));
+    values.push(pickWeighted(candidates, wf));
   }
   for (const v of values) {
     if (v !== kept && !domain.includes(v)) throw new Error(`drew ${v} outside the pool's allowed values`);
@@ -78,7 +132,7 @@ export function moveCost(cfg, a, b) {
 const zeroStats = () => ({ gross: 0, bonus: 0, bonusLost: 0, refund: 0, refundLost: 0, bestPlays: 0 });
 
 export function applyMove(cfg, st, A, B, i, j, round) {
-  const target = getRunTarget(round) + cfg.targetExtra;
+  const target = (getRunTarget(round) + cfg.targetExtra) * cfg.targetScale;
   // Best plays use the shipped rule on raw products.
   const wasBest = getBestPlays(poolsFrom(A, st.ua), poolsFrom(B, st.ub), st.s, target, st.e, RUN_ROUNDS - round + 1).has(`${i}:${j}`);
   const { h, l } = moveCost(cfg, A[i], B[j]);
@@ -157,12 +211,12 @@ export function simulateRun(player, startCfg, { onRoundWin } = {}) {
   let keptA, keptB;
   const rounds = [];
   for (let r = 1; r <= RUN_ROUNDS; r++) {
-    const A = drawPool(cfg, cfg.domainA, keptA);
-    const B = drawPool(cfg, cfg.domainB, keptB);
+    const A = drawPool(cfg, 'A', cfg.domainA, keptA);
+    const B = drawPool(cfg, 'B', cfg.domainB, keptB);
     applyRerolls(cfg, A, B);
     const x = player(cfg, A, B, E, r);
     if (x.outcome !== 'win') return { won: false, deathRound: r, energyAtDeath: E, rounds, cfg };
-    rounds.push({ round: r, startEnergy: E, endEnergy: x.e, turnsLeft: cfg.poolSize - x.t, overshoot: x.s - (getRunTarget(r) + cfg.targetExtra), ...x.f });
+    rounds.push({ round: r, startEnergy: E, endEnergy: x.e, turnsLeft: cfg.poolSize - x.t, overshoot: x.s - (getRunTarget(r) + cfg.targetExtra) * cfg.targetScale, ...x.f });
     E = x.e;
     if (cfg.keepSmallest) { keptA = Math.min(...A); keptB = Math.min(...B); }
     if (onRoundWin && r < RUN_ROUNDS) {
@@ -210,8 +264,34 @@ export function summarize(results) {
   };
 }
 
-export function runMany(playerName, cfgFactory, n, options) {
+export function runManyRaw(playerName, cfgFactory, n, options) {
   const results = [];
   for (let k = 0; k < n; k++) results.push(simulateRun(players[playerName], cfgFactory(), options));
-  return summarize(results);
+  return results;
+}
+
+export function runMany(playerName, cfgFactory, n, options) {
+  return summarize(runManyRaw(playerName, cfgFactory, n, options));
+}
+
+// This process's share of `n` total runs, from SHARD (0-based) / SHARDS env vars.
+// Unset or SHARDS=1 gives the whole n back, so scripts work unchanged single-process.
+export function myShare(n) {
+  const shards = Number(process.env.SHARDS) || 1;
+  const shard = Number(process.env.SHARD) || 0;
+  if (shard < 0 || shard >= shards) throw new Error(`SHARD=${shard} out of range for SHARDS=${shards}`);
+  const base = Math.floor(n / shards), rem = n % shards;
+  return base + (shard < rem ? 1 : 0);
+}
+
+// Drop-in for runMany that, under a parallel.mjs launch (SHARDS>1), runs only
+// this shard's share and sends the raw results to the parent over IPC instead
+// of returning a summary. Scripts should skip their normal printing when this
+// returns null — the launcher merges and prints instead. Single-process
+// (no SHARDS set) behaves exactly like runMany.
+export function runShardAware(playerName, cfgFactory, n, options) {
+  if ((Number(process.env.SHARDS) || 1) <= 1) return runMany(playerName, cfgFactory, n, options);
+  const results = runManyRaw(playerName, cfgFactory, myShare(n), options);
+  if (process.send) process.send(results);
+  return null;
 }

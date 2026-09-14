@@ -1,6 +1,7 @@
 // Win-rate effect of each single upgrade granted after a given round
 // (upgrades-research.md §2–§3).
 // Usage: PLAYER=average N=300 GRANT_ROUNDS=1,5 ONLY="no 90s (both pools)" node single-upgrades.mjs
+import { pathToFileURL } from 'node:url';
 import { runMany, baseConfig } from './upgrade-sim.mjs';
 
 const N = Number(process.env.N || 300);
@@ -34,7 +35,7 @@ export const SINGLE_UPGRADES = {
   'relic: 80s/90s factors cost 25% less': (c) => ({ ...c, energyMod: (a, b, h) => (a >= 80 || b >= 80 ? Math.floor(h * 0.75) : h) }),
 };
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const base = runMany(PLAYER, baseConfig, N);
   console.log(`${PLAYER} baseline (${N} runs): win ${base.winPct.toFixed(1)}% ±${base.stderr.toFixed(1)}`);
   console.log('upgrade | granted after round | win% | change | spent/round | bonus/round | refund/round (lost)');
