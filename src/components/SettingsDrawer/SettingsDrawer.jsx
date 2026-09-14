@@ -1,29 +1,46 @@
 import { useEffect, useState } from 'react';
+import useGameStore from '../../store/useGameStore';
 import SettingsToggles from '../SettingsToggles/SettingsToggles';
 import { SETTINGS_ENABLED } from '../../store/useSettingsStore';
 import styles from './SettingsDrawer.module.css';
 
-// Gear button that opens a slide-in drawer with the playtest settings.
+// Gear button that opens the in-game menu drawer: abandoning the current game
+// (all builds, with a confirm step) and the playtest settings (dev builds only).
 export default function SettingsDrawer() {
+  const mode = useGameStore((s) => s.mode);
+  const resetGame = useGameStore((s) => s.resetGame);
   const [open, setOpen] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+
+  function close() {
+    setOpen(false);
+    setConfirming(false);
+  }
 
   useEffect(() => {
     if (!open) return;
     function onKeyDown(e) {
-      if (e.key === 'Escape') setOpen(false);
+      if (e.key === 'Escape') {
+        setOpen(false);
+        setConfirming(false);
+      }
     }
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [open]);
 
-  if (!SETTINGS_ENABLED) return null;
+  const isRun = mode === 'run';
+  const quitLabel = isRun ? 'Abandon run' : 'Quit to menu';
+  const quitPrompt = isRun
+    ? 'Abandon this run? Your progress will be lost.'
+    : 'Quit to the main menu? Your progress will be lost.';
 
   return (
     <>
       <button
         className={styles.gear}
         onClick={() => setOpen(true)}
-        aria-label="Settings"
+        aria-label="Menu"
         aria-expanded={open}
       >
         &#9881;
@@ -33,29 +50,60 @@ export default function SettingsDrawer() {
         <div
           className={styles.backdrop}
           onClick={(e) => {
-            if (e.target === e.currentTarget) setOpen(false);
+            if (e.target === e.currentTarget) close();
           }}
         >
           <aside
             className={styles.drawer}
             role="dialog"
             aria-modal="true"
-            aria-labelledby="settings-drawer-title"
+            aria-labelledby="game-menu-title"
           >
             <div className={styles.header}>
-              <h2 id="settings-drawer-title" className={styles.title}>
-                Dev settings
+              <h2 id="game-menu-title" className={styles.title}>
+                Menu
               </h2>
               <button
                 className={styles.close}
-                onClick={() => setOpen(false)}
-                aria-label="Close settings"
+                onClick={close}
+                aria-label="Close menu"
                 autoFocus
               >
                 &times;
               </button>
             </div>
-            <SettingsToggles />
+
+            <section className={styles.section}>
+              {confirming ? (
+                <div className={styles.confirm} role="alert">
+                  <p className={styles.prompt}>{quitPrompt}</p>
+                  <div className={styles.confirmActions}>
+                    {/* Focus Cancel, not the destructive action. */}
+                    <button
+                      className={styles.cancel}
+                      onClick={() => setConfirming(false)}
+                      autoFocus
+                    >
+                      Cancel
+                    </button>
+                    <button className={styles.danger} onClick={resetGame}>
+                      {quitLabel}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button className={styles.danger} onClick={() => setConfirming(true)}>
+                  {quitLabel}
+                </button>
+              )}
+            </section>
+
+            {SETTINGS_ENABLED && (
+              <section className={styles.section}>
+                <h3 className={styles.sectionTitle}>Dev settings</h3>
+                <SettingsToggles />
+              </section>
+            )}
           </aside>
         </div>
       )}
