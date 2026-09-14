@@ -1,0 +1,121 @@
+/* Timeline: product pops (0–0.3s), holds as one number, splits and tints
+   (0.8–1.15s), captions drop in (1.05s), label pops (1.25s). Base styles are
+   the final state; keyframes animate from the starting state with fill-mode
+   both. GameScreen's bar delay and Overlay's fade-in delay follow this. */
+
+.reveal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-height: 9.5rem;
+  padding: 0.75rem 1rem;
+}
+
+.prompt {
+  font-size: 0.9rem;
+  color: var(--text-dim);
+}
+
+.equation {
+  font-size: 0.95rem;
+  color: var(--text-dim);
+  animation: fadeIn 0.2s ease both;
+}
+
+.product {
+  display: flex;
+  justify-content: center;
+  gap: 1.75rem;
+  animation:
+    pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both,
+    split 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) 0.8s both;
+}
+
+/* Captions are positioned out of flow so each part is only as wide as its
+   digits; that keeps the halves flush while they read as one number. */
+.part {
+  position: relative;
+  padding-bottom: 1.6rem;
+}
+
+.digits {
+  display: block;
+  font-size: 2.75rem;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  animation: tint 0.3s ease 0.8s both;
+}
+
+.hi .digits,
+.hi .caption {
+  color: var(--gold);
+}
+
+.lo .digits,
+.lo .caption {
+  color: var(--accent);
+}
+
+.caption {
+  position: absolute;
+  bottom: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+  animation: captionIn 0.25s ease 1.05s both;
+}
+
+/* Anchor captions to the seam side so they grow outward and never overlap. */
+.hi .caption {
+  right: 0;
+}
+
+.lo .caption {
+  left: 0;
+}
+
+.label {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--success);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  animation: pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) 1.25s both;
+}
+
+.label.optimal {
+  color: var(--gold);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+}
+
+@keyframes pop {
+  from { opacity: 0; transform: scale(0.5); }
+}
+
+@keyframes split {
+  from { gap: 0; }
+}
+
+@keyframes tint {
+  from { color: var(--text); }
+}
+
+@keyframes captionIn {
+  from { opacity: 0; transform: translateY(-6px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .equation,
+  .product,
+  .digits,
+  .caption,
+  .label {
+    animation: none;
+  }
+}

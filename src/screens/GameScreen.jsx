@@ -1,19 +1,37 @@
 import useGameStore from '../store/useGameStore';
-import { getTarget } from '../store/gameLogic';
+import {
+  getTarget,
+  getBudget,
+  getRunTarget,
+  getRunSpendPar,
+  RUN_MAX_ENERGY,
+} from '../store/gameLogic';
 import HUD from '../components/HUD/HUD';
 import Pool from '../components/Pool/Pool';
+import ProductReveal from '../components/ProductReveal/ProductReveal';
+import StatBar from '../components/StatBar/StatBar';
 import Overlay from '../components/Overlay/Overlay';
 import styles from './GameScreen.module.css';
 
 function getQuality(lowWord, highWord) {
-  if (lowWord >= 70 && highWord >= 50) return 'great';
-  if (lowWord >= 40 && highWord >= 25) return 'good';
+  if (lowWord >= 70 && highWord <= 10) return 'great';
+  if (lowWord >= 40 && highWord <= 25) return 'good';
   return 'poor';
 }
 
 const qualityLabels = { great: 'Great!', good: 'Nice', poor: null };
 
+function getResultLabel(result, isRun) {
+  if (!result) return null;
+  if (isRun) {
+    if (!result.isBest) return null;
+    return result.bonus > 0 ? `Optimal! +${result.bonus} energy` : 'Optimal!';
+  }
+  return qualityLabels[getQuality(result.lowWord, result.highWord)];
+}
+
 export default function GameScreen() {
+  const mode = useGameStore((s) => s.mode);
   const poolA = useGameStore((s) => s.poolA);
   const poolB = useGameStore((s) => s.poolB);
   const selectedA = useGameStore((s) => s.selectedA);
@@ -23,28 +41,37 @@ export default function GameScreen() {
   const lastResult = useGameStore((s) => s.lastResult);
   const turn = useGameStore((s) => s.turn);
   const score = useGameStore((s) => s.score);
-  const money = useGameStore((s) => s.money);
+  const energy = useGameStore((s) => s.energy);
+  const roundSpent = useGameStore((s) => s.roundSpent);
+  const bank = useGameStore((s) => s.bank);
   const round = useGameStore((s) => s.round);
 
-  const target = getTarget(round);
+  const isRun = mode === 'run';
+  const target = isRun ? getRunTarget(round) : getTarget(round);
+  const maxEnergy = isRun ? RUN_MAX_ENERGY : getBudget(round);
   const pct = Math.min((score / target) * 100, 100);
+  const energyPct = Math.max((energy / maxEnergy) * 100, 0);
   const turnsRemaining = Math.min(
     poolA.filter((n) => !n.used).length,
     poolB.filter((n) => !n.used).length
   );
-
-  const quality = lastResult ? getQuality(lastResult.lowWord, lastResult.highWord) : null;
-  const label = quality ? qualityLabels[quality] : null;
 
   const needPerTurn =
     turnsRemaining > 0 && score < target
       ? Math.ceil((target - score) / turnsRemaining)
       : null;
 
-  // Fill color shifts from cyan toward green as progress approaches 100%
-  const fillColor = pct >= 80 ? 'var(--success)' : 'var(--accent)';
+  const energyPerTurn =
+    turnsRemaining > 0
+      ? Math.floor(energy / turnsRemaining)
+      : null;
 
-  // Awaiting selection: one pool has selection, the other doesn't
+  const spendPar = isRun ? getRunSpendPar(round) : null;
+
+  const fillColor = pct >= 80 ? 'var(--success)' : 'var(--accent)';
+  const energyColor = energyPct <= 25 ? 'var(--danger)' : 'var(--gold)';
+  const energyLow = energyPct <= 25;
+
   const awaitingA = selectedB !== null && selectedA === null;
   const awaitingB = selectedA !== null && selectedB === null;
 
@@ -70,41 +97,41 @@ export default function GameScreen() {
         />
       </div>
 
-      {lastResult && (
-        <div key={turn} className={`${styles.result} ${styles[quality]}`}>
-          <span className={styles.equation}>
-            {lastResult.a} &times; {lastResult.b} = {lastResult.product}
-          </span>
-          <span className={styles.breakdown}>
-            <span className={styles.hi}>+${lastResult.highWord} money</span>
-            {' '}
-            <span className={styles.lo}>+{lastResult.lowWord} pts</span>
-          </span>
-          {label && <span className={styles.label}>{label}</span>}
-        </div>
-      )}
+      <ProductReveal
+        key={turn}
+        result={lastResult}
+        label={getResultLabel(lastResult, isRun)}
+        optimal={isRun}
+      />
 
       <div className={styles.statusPanel}>
-        <div className={styles.progressRow}>
-          <div className={styles.bar}>
-            <div
-              className={styles.fill}
-              style={{ width: `${pct}%`, background: fillColor }}
-            />
-          </div>
-          <span className={styles.scoreText}>{score} / {target}</span>
-        </div>
-        {needPerTurn !== null && (
-          <span className={styles.hint}>Need ~{needPerTurn}/turn to win</span>
-        )}
-        <div className={styles.moneyRow}>
-          <span key={money} className={styles.moneyAmount}>${money.toLocaleString()}</span>
-          {lastResult && (
-            <span key={`add-${turn}`} className={styles.moneyFloat}>
-              +${lastResult.highWord}
+        <StatBar
+          label="Score"
+          pct={pct}
+          color={fillColor}
+          text={`${score} / ${target}`}
+        />
+        {isRun ? (
+          <span className={`${styles.hint} ${roundSpent > spendPar ? styles.overPar : ''}`}>
+            Energy spent this round: {roundSpent} · par ~{spendPar}
+          </span>
+        ) : (
+          needPerTurn !== null && (
+            <span className={styles.hint}>
+              Need ~{needPerTurn} pts/turn
+              {energyPerTurn !== null && ` · budget ~${energyPerTurn}/turn`}
             </span>
-          )}
-        </div>
+          )
+        )}
+        <StatBar
+          variant="energy"
+          label="Energy"
+          pct={energyPct}
+          color={energyColor}
+          pulse={energyLow}
+          text={isRun ? `${energy} / ${maxEnergy}` : `${energy} energy`}
+        />
+        {!isRun && <span className={styles.bank}>Bank: {bank.toLocaleString()}</span>}
       </div>
 
       <Overlay />
