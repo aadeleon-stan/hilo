@@ -275,7 +275,51 @@ Each run is within sampling error of the one before it (55% → 60% → 65%). Al
 
 **240 was chosen.** Skilled players almost always win, and the average player's 55% is just above the original "under half" goal. **245** (94% / 44%) is the next step up if playtests feel too easy.
 
-## 10. Caveats
+## 10. Pace hints and energy par
+
+**The old per-turn hints don't fit Run mode.** Replaying runs with the real game logic (300 average-player runs, 100 planner runs), and recording what the hints said before each move:
+
+| Hint | Average player | Planner |
+|---|---|---|
+| "Need ~X pts/turn" hint vs pts scored per move | 22 vs 89; 100% of moves beat it | 24 vs 84; 100% beat it |
+| "budget ~Y/turn" hint vs energy spent per move | 4.4 vs 12.9; 18% of moves within it | 6.9 vs 11.1; 30% within it |
+
+Both hints assume all 9 turns get used, but rounds actually take 3–5 turns. The budget hint also ignores refunds and bonuses, and splits energy evenly across rounds even though later rounds cost about twice as much. At the start of a run it says about 2 energy per turn.
+
+**Energy par candidates** (300 runs each, rounds the player cleared). Values are medians, with the middle half in brackets where measured.
+
+| Round (target) | Planner gross spend | Average gross spend | Planner net use | Average net use |
+|---|---|---|---|---|
+| 1 (240) | 29 [25–34] | 27 [20–35] | 0 [0–0] | 0 [0–1] |
+| 2 (255) | 30 [25–36] | 30 [21–40] | 0 [0–0] | 0 [0–3] |
+| 3 (270) | 33 [27–43] | 35 [25–47] | 0 [0–0] | 3 [0–15] |
+| 4 (285) | 34 [29–45] | 45 [33–59] | 0 [0–4] | 9 [0–24] |
+| 5 (300) | 37 [30–47] | 46 [35–60] | 0 [−1–6] | 12 [2–25] |
+| 6 (315) | 38 [30–50] | 44 [34–59] | 0 [−3–8] | 10 [1–24] |
+| 7 (330) | 42 [33–57] | 46 [33–62] | 0 [−2–13] | 9 [−1–26] |
+| 8 (345) | 43 [33–58] | 49 [37–69] | 7 [0–21] | 17 [3–34] |
+| 9 (360) | 53 [41–70] | 59 [43–81] | 9 [0–22] | 20 [3–34] |
+| 10 (375) | 56 [43–74] | 69 [56–82] | 18 [5–32] | 27 [13–42] |
+
+"Net use" is energy at the start of the round minus energy at the end, so it counts bonuses and refunds.
+
+Planner means per round:
+- **Bonus:** grows from 5.7 to 17.7.
+- **Refund:** stays between 21 and 24.5.
+
+Findings:
+- **Par depends on the run's state, not just the target.** A single-round planner at a fixed 120 energy with 5 rounds left spent less at the same targets: median 22 at 240 and 38 at 315. So par should be a per-round table taken from real runs, not a formula of the target.
+- **Rounds 1–2 don't separate skill** under either measure. Both players refill to the 200 cap, and nobody dies early.
+- **Gross spend can be tracked live** and separates players from round 4. But it undervalues finishing fast: the planner spends slightly *more* than the average player in round 1 in order to collect refunds.
+- **Net use separates players from round 3,** but it's only meaningful once the round ends. The refund arrives on the winning move, so mid-round net always looks over par.
+
+**Chosen: both, each where it works.**
+- **During a round:** the hint shows gross spend against the planner's median spend, `[29, 30, 33, 34, 37, 38, 42, 43, 53, 56]`, and turns red over par.
+- **When a round is won:** the popup shows net use against the planner's median net use, `[0, 0, 0, 0, 0, 0, 0, 7, 9, 18]`. That way a fast finish still gets credit.
+
+Both tables live in `gameLogic.js` and must be regenerated whenever the run constants change.
+
+## 11. Caveats
 
 - **Simulated, not human, players.** The planner is a stand-in for strong play; a human "average" player may play better or worse than the one-move-at-a-time model with λ = 1.5.
 - **Tuning is sensitive.** Each +5 on the starting target costs the average player roughly 10 points of win rate. All run constants sit together at the top of `src/store/gameLogic.js` for easy adjustment.

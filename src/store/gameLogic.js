@@ -40,6 +40,21 @@ export function getRunTarget(round) {
   return 240 + (round - 1) * 15;
 }
 
+// Per-round median energy for a strong (planning) player in simulated runs:
+// gross spend (sum of high words) and net use (spend minus bonus and refund).
+// Derived from the constants above; regenerate if run tuning changes.
+// See feature-docs/progression-research.md, section 10.
+const RUN_SPEND_PAR = [29, 30, 33, 34, 37, 38, 42, 43, 53, 56];
+const RUN_NET_PAR = [0, 0, 0, 0, 0, 0, 0, 7, 9, 18];
+
+export function getRunSpendPar(round) {
+  return RUN_SPEND_PAR[round - 1];
+}
+
+export function getRunNetPar(round) {
+  return RUN_NET_PAR[round - 1];
+}
+
 export function getBestPlayBonus(highWord) {
   return Math.min(6, Math.ceil(highWord / 2));
 }

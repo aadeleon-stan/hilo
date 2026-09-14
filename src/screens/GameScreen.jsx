@@ -3,11 +3,12 @@ import {
   getTarget,
   getBudget,
   getRunTarget,
-  RUN_ROUNDS,
+  getRunSpendPar,
   RUN_MAX_ENERGY,
 } from '../store/gameLogic';
 import HUD from '../components/HUD/HUD';
 import Pool from '../components/Pool/Pool';
+import ProductReveal from '../components/ProductReveal/ProductReveal';
 import Overlay from '../components/Overlay/Overlay';
 import styles from './GameScreen.module.css';
 
@@ -19,9 +20,13 @@ function getQuality(lowWord, highWord) {
 
 const qualityLabels = { great: 'Great!', good: 'Nice', poor: null };
 
-function getRunLabel(lastResult) {
-  if (!lastResult.isBest) return null;
-  return lastResult.bonus > 0 ? `Optimal! +${lastResult.bonus} energy` : 'Optimal!';
+function getResultLabel(result, isRun) {
+  if (!result) return null;
+  if (isRun) {
+    if (!result.isBest) return null;
+    return result.bonus > 0 ? `Optimal! +${result.bonus} energy` : 'Optimal!';
+  }
+  return qualityLabels[getQuality(result.lowWord, result.highWord)];
 }
 
 export default function GameScreen() {
@@ -36,6 +41,7 @@ export default function GameScreen() {
   const turn = useGameStore((s) => s.turn);
   const score = useGameStore((s) => s.score);
   const energy = useGameStore((s) => s.energy);
+  const roundSpent = useGameStore((s) => s.roundSpent);
   const bank = useGameStore((s) => s.bank);
   const round = useGameStore((s) => s.round);
 
@@ -49,23 +55,17 @@ export default function GameScreen() {
     poolB.filter((n) => !n.used).length
   );
 
-  const quality = lastResult ? getQuality(lastResult.lowWord, lastResult.highWord) : null;
-  let label = null;
-  if (lastResult) {
-    label = isRun ? getRunLabel(lastResult) : qualityLabels[quality];
-  }
-
   const needPerTurn =
     turnsRemaining > 0 && score < target
       ? Math.ceil((target - score) / turnsRemaining)
       : null;
 
-  // In a run, energy has to last the remaining rounds, not just this one.
-  const roundsLeft = isRun ? RUN_ROUNDS - round + 1 : 1;
   const energyPerTurn =
     turnsRemaining > 0
-      ? Math.floor(energy / roundsLeft / turnsRemaining)
+      ? Math.floor(energy / turnsRemaining)
       : null;
+
+  const spendPar = isRun ? getRunSpendPar(round) : null;
 
   const fillColor = pct >= 80 ? 'var(--success)' : 'var(--accent)';
   const energyColor = energyPct <= 25 ? 'var(--danger)' : 'var(--gold)';
@@ -96,23 +96,12 @@ export default function GameScreen() {
         />
       </div>
 
-      {lastResult && (
-        <div key={turn} className={`${styles.result} ${styles[quality]}`}>
-          <span className={styles.equation}>
-            {lastResult.a} &times; {lastResult.b} = {lastResult.product}
-          </span>
-          <span className={styles.breakdown}>
-            <span className={styles.hi}>&minus;{lastResult.highWord} energy</span>
-            {' '}
-            <span className={styles.lo}>+{lastResult.lowWord} pts</span>
-          </span>
-          {label && (
-            <span className={`${styles.label} ${isRun ? styles.optimal : ''}`}>
-              {label}
-            </span>
-          )}
-        </div>
-      )}
+      <ProductReveal
+        key={turn}
+        result={lastResult}
+        label={getResultLabel(lastResult, isRun)}
+        optimal={isRun}
+      />
 
       <div className={styles.statusPanel}>
         <span className={styles.barLabel}>Score</span>
@@ -125,11 +114,17 @@ export default function GameScreen() {
           </div>
           <span className={styles.scoreText}>{score} / {target}</span>
         </div>
-        {needPerTurn !== null && (
-          <span className={styles.hint}>
-            Need ~{needPerTurn} pts/turn
-            {energyPerTurn !== null && ` · budget ~${energyPerTurn}/turn`}
+        {isRun ? (
+          <span className={`${styles.hint} ${roundSpent > spendPar ? styles.overPar : ''}`}>
+            Energy spent this round: {roundSpent} · par ~{spendPar}
           </span>
+        ) : (
+          needPerTurn !== null && (
+            <span className={styles.hint}>
+              Need ~{needPerTurn} pts/turn
+              {energyPerTurn !== null && ` · budget ~${energyPerTurn}/turn`}
+            </span>
+          )
         )}
         <span className={styles.barLabel}>Energy</span>
         <div className={styles.energyRow}>
@@ -142,11 +137,6 @@ export default function GameScreen() {
           <span className={styles.energyText}>
             {isRun ? `${energy} / ${maxEnergy}` : `${energy} energy`}
           </span>
-          {lastResult && (
-            <span key={`cost-${turn}`} className={styles.energyFloat}>
-              &minus;{lastResult.highWord}
-            </span>
-          )}
         </div>
         {!isRun && <span className={styles.bank}>Bank: {bank.toLocaleString()}</span>}
       </div>

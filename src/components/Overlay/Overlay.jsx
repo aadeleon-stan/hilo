@@ -2,17 +2,26 @@ import useGameStore from '../../store/useGameStore';
 import {
   getTarget,
   getRunTarget,
+  getRunNetPar,
   RUN_ROUNDS,
   RUN_MAX_ENERGY,
   RUN_TURN_REFUND,
 } from '../../store/gameLogic';
 import styles from './Overlay.module.css';
 
+// Net energy use: positive means energy was used, negative means it was gained.
+function formatNet(net) {
+  if (net > 0) return `−${net}`;
+  if (net < 0) return `+${-net}`;
+  return '0';
+}
+
 export default function Overlay() {
   const phase = useGameStore((s) => s.phase);
   const mode = useGameStore((s) => s.mode);
   const bank = useGameStore((s) => s.bank);
   const energy = useGameStore((s) => s.energy);
+  const roundStartEnergy = useGameStore((s) => s.roundStartEnergy);
   const roundBonus = useGameStore((s) => s.roundBonus);
   const turnsAtEnd = useGameStore((s) => s.turnsAtEnd);
   const round = useGameStore((s) => s.round);
@@ -26,6 +35,8 @@ export default function Overlay() {
   const isRun = mode === 'run';
   const isWin = phase !== 'loss';
   const target = isRun ? getRunTarget(round) : getTarget(round);
+  const net = roundStartEnergy - energy;
+  const netPar = isRun ? getRunNetPar(round) : null;
 
   let title;
   if (phase === 'runWon') title = 'Run Complete!';
@@ -67,6 +78,12 @@ export default function Overlay() {
               {roundBonus < turnsAtEnd * RUN_TURN_REFUND && ' (capped at max)'}
             </p>
           </div>
+        )}
+
+        {isWin && isRun && (
+          <p className={`${styles.netPar} ${net <= netPar ? styles.underPar : styles.overPar}`}>
+            Net energy: {formatNet(net)} &middot; par {formatNet(netPar)}
+          </p>
         )}
 
         <p className={styles.total}>

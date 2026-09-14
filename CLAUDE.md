@@ -22,6 +22,7 @@ The store's `mode` (`'run' | 'classic'`) selects the rules. All tuning lives in 
 - One energy pool starting at `RUN_MAX_ENERGY` (200) carries across rounds and never exceeds the max.
 - On a round win, `RUN_TURN_REFUND` (5) energy per leftover turn is recovered.
 - Best plays: `getBestPlays` scores every open move on the board *before* the move as `lo / scorePace − hi / energyPace` (scorePace = points still needed per turn left; energyPace = energy / rounds left / turns left). Among moves worth at least `BEST_PLAY_MIN_SCORE` (20) points, those within `BEST_PLAY_TOLERANCE` (0.15) of the top score qualify, unless another open move costs no more and scores no less. They earn `getBestPlayBonus(hi)` = `min(6, ceil(hi / 2))`, so a best play still costs net energy. The player only sees an "Optimal!" tag after making one.
+- Energy par (`getRunSpendPar` / `getRunNetPar`): per-round tables of a simulated strong player's median gross spend and net use (spend − bonus − refund). During a round, `GameScreen` shows `roundSpent` vs spend par, replacing the Classic per-turn pace hints, which are meaningless in a run. The round-complete popup shows net use (`roundStartEnergy − energy`) vs net par. **The tables are simulation output tied to the run constants — regenerate them (research doc, section 10) whenever run tuning changes.**
 - Winning round `RUN_ROUNDS` sets `phase: 'runWon'`.
 
 **Endless Classic**:
@@ -39,7 +40,7 @@ Selection flow: picking from both pools triggers `confirmSelection()` via a 150m
 ### UI layers
 
 - **Screens** (`src/screens/`) — `MainMenu` (Start Run / Endless Classic) and `GameScreen`, switched by store's `screen` state in `App.jsx`
-- **Components** (`src/components/`) — `Pool` (3×3 selectable grid), `HUD` (round, shown as "r / 10" in a run, and turns left), `Overlay` (win/loss modal: energy recovered in a run, bank breakdown in Classic). `GameScreen` owns the score/energy bars, per-turn hints, and result labels (quality labels in Classic, the Optimal tag in a run).
+- **Components** (`src/components/`) — `Pool` (3×3 selectable grid), `HUD` (round, shown as "r / 10" in a run, and turns left), `Overlay` (win/loss modal: energy recovered in a run, bank breakdown in Classic; fades in after a 1.4s delay so the last move's reveal plays first), `ProductReveal` (pops the product in as one number, holds, then at 0.8s splits it into high word = gold energy cost and low word = cyan points; `GameScreen` remounts it with `key={turn}` to replay). `GameScreen` owns the score/energy bars, whose fill transitions are delayed 1.05s to land after the split, the hint line (per-turn pace in Classic, energy spent vs par in a run), and picks the result label (quality labels in Classic, the Optimal tag in a run). Animation timings are coupled across these three stylesheets.
 
 ### Styling
 

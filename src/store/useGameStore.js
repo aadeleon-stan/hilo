@@ -32,6 +32,8 @@ const useGameStore = create((set, get) => ({
   round: 1,
   score: 0,
   energy: 0,
+  roundStartEnergy: 0,
+  roundSpent: 0,
   bank: 0,
   phase: 'selecting',
   poolA: [],
@@ -50,6 +52,8 @@ const useGameStore = create((set, get) => ({
       round: 1,
       score: 0,
       energy: RUN_MAX_ENERGY,
+      roundStartEnergy: RUN_MAX_ENERGY,
+      roundSpent: 0,
       bank: 0,
       phase: 'selecting',
       poolA: generatePool(),
@@ -69,6 +73,8 @@ const useGameStore = create((set, get) => ({
       round: 1,
       score: 0,
       energy: getBudget(1),
+      roundStartEnergy: getBudget(1),
+      roundSpent: 0,
       bank: 0,
       phase: 'selecting',
       poolA: generatePool(),
@@ -152,6 +158,7 @@ const useGameStore = create((set, get) => ({
       selectedB: null,
       turn: state.turn + 1,
       score: newScore,
+      roundSpent: state.roundSpent + result.highWord,
       turnsAtEnd: outcome === 'win' ? turnsRemaining : 0,
     };
 
@@ -193,10 +200,13 @@ const useGameStore = create((set, get) => ({
     cancelConfirm();
     const state = get();
     const newRound = state.round + 1;
+    const energy = state.mode === 'run' ? state.energy : getBudget(newRound);
     set({
       round: newRound,
       score: 0,
-      energy: state.mode === 'run' ? state.energy : getBudget(newRound),
+      energy,
+      roundStartEnergy: energy,
+      roundSpent: 0,
       phase: 'selecting',
       poolA: generatePool(),
       poolB: generatePool(),
@@ -217,6 +227,8 @@ const useGameStore = create((set, get) => ({
       round: 1,
       score: 0,
       energy: 0,
+      roundStartEnergy: 0,
+      roundSpent: 0,
       bank: 0,
       phase: 'selecting',
       poolA: [],
