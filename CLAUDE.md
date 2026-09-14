@@ -45,3 +45,7 @@ Selection flow: picking from both pools triggers `confirmSelection()` via a 150m
 ### Styling
 
 CSS Modules per component. Dark theme variables defined in `src/index.css` (slate palette: `--bg: #0f172a`, `--surface: #1e293b`, accents in cyan/gold/green/red). Inspired by the sibling `../remainders/` project.
+
+## Research
+
+Game-design research lives in `feature-docs/` (the user's specs as `*.txt`, findings as `*-research.md`) and `research/`. **Start with `research/README.md`**: it has the current project status, decisions the user has made, working preferences, and how to run the Node simulation scripts in `research/sims/`, which import the shipped rules from `src/store/gameLogic.js`. The next planned simulations are in `research/sim-plan-2.md`.

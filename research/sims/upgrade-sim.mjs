@@ -1,0 +1,217 @@
+// Upgrade research harness for HiLo Run mode.
+// Mirrors useGameStore.confirmSelection (best plays judged before the move,
+// cost applied, round-end check, then bonus and refund capped at max energy),
+// with the pool generator, energy rules and round-end rules made configurable.
+import {
+  computeProduct,
+  getBestPlays,
+  getBestPlayBonus,
+  getRunTarget,
+  checkRoundEnd,
+  RUN_ROUNDS,
+  RUN_MAX_ENERGY,
+  RUN_TURN_REFUND,
+} from '../../src/store/gameLogic.js';
+
+export { RUN_ROUNDS, getRunTarget };
+export const ALL_VALUES = Array.from({ length: 90 }, (_, i) => i + 10);
+
+export function baseConfig() {
+  return {
+    domainA: ALL_VALUES,
+    domainB: ALL_VALUES,
+    poolSize: 9,
+    targetExtra: 0, // added to every round target (harder difficulty for planner tests)
+    allowRepeats: false,
+    guaranteeTens: false, // each pool contains at least one 10–19 value
+    maxEnergy: RUN_MAX_ENERGY,
+    refundPerTurn: RUN_TURN_REFUND,
+    refundMultiplier: 1, // e.g. 1.4 for a "+40% round-end refund" relic
+    bonusCap: 6, // Optimal bonus cap (getBestPlayBonus caps at 6)
+    rerollsPerRound: 0, // before a round: reroll the largest number on the board
+    keepSmallest: false, // carry each pool's smallest number into the next round
+    energyMod: null, // (a, b, highWord) => highWord
+    pointsMod: null, // (a, b, lowWord) => lowWord
+  };
+}
+
+const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
+function drawPool(cfg, domain, kept) {
+  const values = [];
+  if (kept !== undefined) values.push(kept);
+  if (cfg.guaranteeTens && !values.some((v) => v < 20)) {
+    const tens = domain.filter((v) => v < 20);
+    if (tens.length) values.push(pick(tens));
+  }
+  while (values.length < cfg.poolSize) {
+    const v = pick(domain);
+    if (cfg.allowRepeats || !values.includes(v)) values.push(v);
+  }
+  for (const v of values) {
+    if (v !== kept && !domain.includes(v)) throw new Error(`drew ${v} outside the pool's allowed values`);
+  }
+  return values;
+}
+
+// One reroll replaces the single largest number on the board with a fresh draw.
+function applyRerolls(cfg, A, B) {
+  for (let r = 0; r < cfg.rerollsPerRound; r++) {
+    const maxA = Math.max(...A), maxB = Math.max(...B);
+    const [pool, domain] = maxA >= maxB ? [A, cfg.domainA] : [B, cfg.domainB];
+    const idx = pool.indexOf(Math.max(...pool));
+    let v;
+    do v = pick(domain); while (!cfg.allowRepeats && pool.includes(v));
+    pool[idx] = v;
+  }
+}
+
+const poolsFrom = (vals, mask) => vals.map((value, id) => ({ id, value, used: !!((mask >> id) & 1) }));
+
+export function moveCost(cfg, a, b) {
+  const p = computeProduct(a, b);
+  const h = cfg.energyMod ? cfg.energyMod(a, b, p.highWord) : p.highWord;
+  const l = cfg.pointsMod ? cfg.pointsMod(a, b, p.lowWord) : p.lowWord;
+  return { h, l, product: p.product };
+}
+
+const zeroStats = () => ({ gross: 0, bonus: 0, bonusLost: 0, refund: 0, refundLost: 0, bestPlays: 0 });
+
+export function applyMove(cfg, st, A, B, i, j, round) {
+  const target = getRunTarget(round) + cfg.targetExtra;
+  // Best plays use the shipped rule on raw products.
+  const wasBest = getBestPlays(poolsFrom(A, st.ua), poolsFrom(B, st.ub), st.s, target, st.e, RUN_ROUNDS - round + 1).has(`${i}:${j}`);
+  const { h, l } = moveCost(cfg, A[i], B[j]);
+  const ua = st.ua | (1 << i), ub = st.ub | (1 << j);
+  const s = st.s + l;
+  let e = st.e - h;
+  const outcome = checkRoundEnd(s, target, e, poolsFrom(A, ua), poolsFrom(B, ub));
+  const f = { ...st.f, gross: st.f.gross + h };
+  if (wasBest && outcome !== 'loss') {
+    const raw = Math.min(cfg.bonusCap, Math.ceil(h / 2));
+    const got = Math.max(0, Math.min(raw, cfg.maxEnergy - e));
+    e += got; f.bonus += got; f.bonusLost += raw - got; f.bestPlays++;
+  }
+  if (outcome === 'win') {
+    const raw = Math.round((cfg.poolSize - st.t - 1) * cfg.refundPerTurn * cfg.refundMultiplier);
+    const got = Math.max(0, Math.min(raw, cfg.maxEnergy - e));
+    e += got; f.refund += got; f.refundLost += raw - got;
+  }
+  return { ua, ub, s, e, t: st.t + 1, outcome, f };
+}
+
+const fresh = (E) => ({ ua: 0, ub: 0, s: 0, e: E, t: 0, outcome: null, f: zeroStats() });
+
+function openMoves(cfg, st) {
+  const moves = [];
+  for (let i = 0; i < cfg.poolSize; i++) if (!((st.ua >> i) & 1))
+    for (let j = 0; j < cfg.poolSize; j++) if (!((st.ub >> j) & 1)) moves.push([i, j]);
+  return moves;
+}
+
+export function greedyRound(cfg, A, B, E, round, lam) {
+  let st = fresh(E);
+  while (!st.outcome) {
+    let best = null, bv = -Infinity;
+    for (const [i, j] of openMoves(cfg, st)) {
+      const { h, l } = moveCost(cfg, A[i], B[j]);
+      const v = l - lam * h;
+      if (v > bv) { bv = v; best = [i, j]; }
+    }
+    st = applyMove(cfg, st, A, B, best[0], best[1], round);
+  }
+  return st;
+}
+
+export function plannerRound(cfg, A, B, E, round) {
+  let bestEnd = null;
+  for (const lam of [0.5, 1.5, 3, 6]) {
+    let states = [fresh(E)];
+    while (states.length) {
+      const next = [];
+      for (const st of states) for (const [i, j] of openMoves(cfg, st)) {
+        const ns = applyMove(cfg, st, A, B, i, j, round);
+        if (ns.outcome === 'win') { if (!bestEnd || ns.e > bestEnd.e) bestEnd = ns; }
+        else if (!ns.outcome) next.push(ns);
+      }
+      next.sort((x, y) => (y.s - lam * (E - y.e)) - (x.s - lam * (E - x.e)));
+      states = next.slice(0, 30);
+    }
+  }
+  return bestEnd || greedyRound(cfg, A, B, E, round, 0);
+}
+
+export const players = {
+  average: (cfg, A, B, E, r) => {
+    const x = greedyRound(cfg, A, B, E, r, 1.5);
+    return x.outcome === 'win' ? x : greedyRound(cfg, A, B, E, r, 0);
+  },
+  planner: plannerRound,
+};
+
+// Simulates one run. onRoundWin(cfg, round, energy) may return a new config
+// (an upgrade); raising maxEnergy also adds the difference to current energy.
+export function simulateRun(player, startCfg, { onRoundWin } = {}) {
+  let cfg = startCfg;
+  let E = cfg.maxEnergy;
+  let keptA, keptB;
+  const rounds = [];
+  for (let r = 1; r <= RUN_ROUNDS; r++) {
+    const A = drawPool(cfg, cfg.domainA, keptA);
+    const B = drawPool(cfg, cfg.domainB, keptB);
+    applyRerolls(cfg, A, B);
+    const x = player(cfg, A, B, E, r);
+    if (x.outcome !== 'win') return { won: false, deathRound: r, energyAtDeath: E, rounds, cfg };
+    rounds.push({ round: r, startEnergy: E, endEnergy: x.e, turnsLeft: cfg.poolSize - x.t, overshoot: x.s - (getRunTarget(r) + cfg.targetExtra), ...x.f });
+    E = x.e;
+    if (cfg.keepSmallest) { keptA = Math.min(...A); keptB = Math.min(...B); }
+    if (onRoundWin && r < RUN_ROUNDS) {
+      const next = onRoundWin(cfg, r, E);
+      if (next !== cfg) {
+        if (next.maxEnergy > cfg.maxEnergy) E += next.maxEnergy - cfg.maxEnergy;
+        cfg = next;
+      }
+    }
+  }
+  return { won: true, rounds, cfg };
+}
+
+const median = (arr) => {
+  if (!arr.length) return null;
+  const s = [...arr].sort((a, b) => a - b);
+  return s[Math.floor(0.5 * (s.length - 1))];
+};
+
+export function summarize(results) {
+  const n = results.length;
+  const wins = results.filter((r) => r.won).length;
+  const deaths = Array(RUN_ROUNDS + 1).fill(0);
+  results.forEach((r) => { if (!r.won) deaths[r.deathRound]++; });
+  const byRound = Array.from({ length: RUN_ROUNDS + 1 }, () => []);
+  results.forEach((r) => r.rounds.forEach((rd) => byRound[rd.round].push(rd)));
+  const mean = (arr, k) => (arr.length ? arr.reduce((t, x) => t + x[k], 0) / arr.length : 0);
+  const cleared = results.flatMap((r) => r.rounds);
+  return {
+    n,
+    winPct: (wins / n) * 100,
+    stderr: Math.sqrt((wins / n) * (1 - wins / n) / n) * 100,
+    deathsPct: deaths.slice(1).map((d) => (d / n) * 100),
+    medianEnergyAtDeath: median(results.filter((r) => !r.won).map((r) => r.energyAtDeath)),
+    medianGross: byRound.slice(1).map((rs) => median(rs.map((x) => x.gross))),
+    medianNet: byRound.slice(1).map((rs) => median(rs.map((x) => x.startEnergy - x.endEnergy))),
+    perRound: {
+      gross: mean(cleared, 'gross'),
+      bonus: mean(cleared, 'bonus'),
+      refund: mean(cleared, 'refund'),
+      refundLost: mean(cleared, 'refundLost'),
+      turnsLeft: mean(cleared, 'turnsLeft'),
+      overshoot: mean(cleared, 'overshoot'),
+    },
+  };
+}
+
+export function runMany(playerName, cfgFactory, n, options) {
+  const results = [];
+  for (let k = 0; k < n; k++) results.push(simulateRun(players[playerName], cfgFactory(), options));
+  return summarize(results);
+}

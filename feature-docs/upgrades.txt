@@ -1,0 +1,51 @@
+It's time to start introducing roguelike elements to the run mode of this game. We will also probably have to rebalance a bit around this, but let's get some ideas out there to play around with.
+
+We probably need end-of-round upgrades (completing a round gives the player the ability to impact the rest of the run) and single-use consumables (adding a money resource and occasional shops, with a small inventory). We may also want to add passive bonuses (like "relics") that can be purchased at shops and/or earned every few rounds.
+
+# End-of-round upgrades
+This is the main place to do research and tune the game, since I believe this tends to be the core skill expression area of the roguelike. Since the game mechanic is about understanding products while the main form of randomness comes from the pools of factors, I think giving the player ways to limit or influence the pool of factors seems natural. Evaluate this and come up with some possible approaches (including evaluating my suggestions in progression.txt).
+
+These upgrades should be tuned in a way that skilled players can always win a run, but that will require a lot of playtesting so we can get to that later. Just a thought to keep in mind.
+
+A common pattern in roguelikes is a "pick one of three" upgrade at the end of the round, where three options are offered for upgrades and the player selects at most one. So we probably want to use a similar approach since it will be familiar to players.
+
+# Money and shops
+Receive money at round end for:
+1. Completing the round (flat amount, TBD)
+2. Bonus for remaining turns (similar to energy bonus, amount TBD)
+3. Bonus for overshooting score target (probably just score - target)
+
+Probably just a shop after round 3, 6, and 9 makes sense to start? And maybe each shop just has three options for items to buy.
+
+# Single-use items
+These are some possible items to buy from the shop. It's a non-exhaustive list and probably requires some tuning to determine appropriate rarity/prices, since obviously some of these are much stronger than others. The player can store at most three items in their inventory at a time; they can discard items at any time to make space for new ones.
+
+1. Extra energy (or next play costs half as much energy, or next play costs no energy)
+2. Double points for next play
+3. Reroll all remaining factors in one pool
+4. Revive one factor from one pool (choosing another factor from that pool to eliminate instead to keep turn count stable)
+5. Digit-swap: change one factor from XY to YX.
+6. Board refresh: completely reset the board (but not the points or energy)
+7. Shopping app: can visit the shop once out of turn (in the middle of a round or in between rounds where there is normally no shop)
+
+# Relics/passives
+Relics with passive bonuses could include:
+1. Extra energy regain on round win (e.g., 40% more)
+2. Extra money regain on round win
+3. Extra energy regain on optimal play (with limit-breaker to increase the cap from 6)
+4. Perfect squares don't cost energy
+5. Something special for high products, e.g., anything over 4000 yields double score
+6. Something special for high factors, e.g., using 80s or 90s gives better scores or costs less energy
+7. Increase max energy
+8. Digit-swap: allow a certain number of uses per round to change one factor from XY to YX
+9. Increase inventory from 3 to 5
+10. Decrease shop prices
+
+Don't worry about implementing this right now, we can make a plan for it later.
+
+# Updates after first research round 9/14/2026
+We should continue to explore the "remove two ones digits" upgrade -- each combo of ones digits can be a separate possible upgrade (for variety), and we can even explore assigning each removed digit to a specific pool, so that "remove 5 and 9" is different from "remove 9 and 5."
+
+I like the idea of increasing the probability of better numbers appearing. There can be an actual distribution chart to look at here (like dicebuilder roguelikes where players can see and influence how likely each face is to land on each of their dice), and/or we can have upgrades like "guarantee at least [N] 10-19 number(s) in Pool A" where players can progressively upgrade (or purchase) increases to N.
+
+Looking more into upgrades that alter decades, we should check what happens if we start the run with pools from, e.g., 40-79, and force the player to earn and/or purchase the lower decades. There may be a possible tradeoff offered, e.g., "unlock 10s but also unlock 90s." Another interesting effect here is that the starting game is a lot more tightly constrained -- if the player takes (or receives) no pool upgrades, we have a much smaller set of possible products.
