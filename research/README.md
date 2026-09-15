@@ -37,6 +37,7 @@ The harness changes it required are done (weighted draws, per-pool range guarant
 - **Run difficulty target:** skilled players should (almost) always win a run, while average players win somewhere near half.
 - **Difficulty is chosen by the user:** the shipped starting target is 240, chosen for its stats, though simulations suggest average players win about 65%. Present options with data and let the user choose.
 - **Constrained-start research uses 40–79** (`targetScale` 0.564) for S3b–e, chosen 2026-09-14.
+- **S3d uses a normal per-round target ramp** (2026-09-14): forcing players to draft well is the point of the roguelike. Targets tied to unlocks (like the lowest-decade hybrid) are research comparisons only.
 - **Playtest settings are dev-only** (`import.meta.env.DEV`). Player-facing features such as Abandon run ship in all builds.
 
 ## Working preferences observed
@@ -64,6 +65,7 @@ All scripts import the shipped rules from `src/store/gameLogic.js`. Run them fro
 | `s2a-guarantees.mjs` | Round 2 S2a: win-rate change for "at least N tens" guarantees, one pool vs both. | `N=300 node s2a-guarantees.mjs` |
 | `s2b-weights.mjs` | Round 2 S2b: win-rate change for 10s-up / 90s-down odds weights, one pool vs both. | `N=300 node s2b-weights.mjs` |
 | `s2c-stacking.mjs` | Round 2 S2c: win rate after 1–4 stacks of one odds upgrade (granted after rounds 1, 3, 5, 7), at a harder `TARGET_SCALE` so later stacks aren't hidden by the 100% ceiling. | `UPGRADE=tens1.5 TARGET_SCALE=1.062 node s2c-stacking.mjs` |
+| `s3d-scaling-options.mjs` | Round 2 S3d prep: calibrates one target-scaling option (`ramp`, `decade`, `flat`, `hybrid` or `lowest`) so a reference unlock path gives the average player ~50%, then runs fixed unlock paths with both players. | `OPTION=ramp node s3d-scaling-options.mjs` |
 | `s2e-odds-chart.mjs` | Round 2 S2e: exact (non-simulated) odds-chart data for weighted pool draws — per-decade expected counts, P(≥1 ten), via a small DP. Self-checks against the closed-form hypergeometric distribution. | `node s2e-odds-chart.mjs` |
 | `s3a-retune.mjs` | Round 2 S3a: binary-searches `targetScale` until the average player's win rate matches `TARGET_WIN` (default 66%), then confirms the planner (`N_PLANNER=0` skips). `UNLOCK` adds decades from the start and `UNLOCK_PATH` adds them after `GRANT_ROUNDS`, which S3b–c use to value unlocks past the win-rate ceiling. | `RANGE=40,79 UNLOCK=10 N_AVG=400 N_PLANNER=0 node s3a-retune.mjs` |
 | `s3b-unlock-values.mjs` | Round 2 S3b: win rate and energy per round for each decade unlock (and trade-off pair) granted after round 1 on a constrained start. | `TARGET_SCALE=0.564 N=600 node s3b-unlock-values.mjs` |

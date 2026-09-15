@@ -272,6 +272,46 @@ Same ceiling as S3b: every path with a low decade by round 4 wins every run at t
 - **The 10s carry the path.** Lowest-first supports about the same targets as having only the 10s from round 1 (+79% vs +81%), which suggests the later 20s and 30s add little once the 10s are in. The two setups also differ in rounds 1–2, so this isn't a clean test.
 - **High-first is worth nothing overall** (−1%): the 80s and 90s cost about what the late 30s give back. At the fixed target its runs die earlier but less often in round 10.
 
+### S3d prep: how targets should climb as unlocks arrive
+
+A 40–79 start tuned for no unlocks becomes unlosable after one low unlock, so drafting needs targets that climb. `research/sims/s3d-scaling-options.mjs` compares options. Each option's difficulty knob is calibrated so a middle-quality path (30s → 20s → 10s after rounds 2, 4 and 6) gives the average player about 50% (400 runs per search point). Then fixed unlock paths run at that setting: 600 average-player runs (about ±2) and 100 planner runs (about ±4). These are fixed paths, not drafting.
+
+- **Ramp:** targets climb k per round regardless of unlocks. Calibrated k = 50.6 before scaling, about +29 points per round; targets 135 → 468.
+- **Flat step:** each unlock raises later targets 25%. Calibrated base scale 0.659; the reference path runs 158 → 432.
+- **Decade steps:** each unlock raises later targets by half its S3b headroom (10s +41%, 20s +27%, 30s +17%, 80s/90s −4%), summed. Calibrated base scale 0.648; reference path 156 → 448.
+- **Hybrid:** the same summed decade steps plus a ramp of k = 8.9 (about +5 points per round); reference path 135 → 474.
+
+Each cell is average-player win % / planner win %:
+
+| Unlock path | Ramp | Flat step | Decade steps | Hybrid |
+|---|---|---|---|---|
+| no unlocks | 0 / 0 | 0.5 / 81 | 0.8 / 85 | 3.5 / 95 |
+| 10s → 20s → 30s | 94.5 / 100 | 94.5 / 100 | 87.3 / 100 | 83.7 / 100 |
+| 30s → 20s → 10s (calibrated) | 48.8 / 100 | 53.8 / 100 | 51.8 / 100 | 51.2 / 99 |
+| 30s → 80s → 20s | 0 / 11 | 0 / 7 | 36.3 / 98 | 34.0 / 99 |
+| 80s → 90s → 30s | 0 / 0 | 0 / 0 | 11.7 / 75 | 9.2 / 74 |
+| 30s only | 0 / 1 | 23.2 / 100 | 69.5 / 100 | 63.7 / 100 |
+
+**Findings:**
+- **A ramp makes unlocks mandatory, and a bad path is unwinnable even for the planner** (0–11% on paths that take a high decade or stop at the 30s). In drafting, a skilled player won't choose those paths, so the risk is offer luck: a run never offered a low unlock in time. S3d has to measure that directly; the plan's check that the planner drafting well wins at least 97% is the test.
+- **A flat step punishes high unlocks twice** (they raise targets like any unlock and make rounds costlier), so taking one is fatal.
+- **Summed steps (decade and hybrid) give graded outcomes,** with the planner at 74% or better on every path, **but they overcharge for stacking.** S3c found unlock values don't add up (10s → 20s → 30s is worth about the same as 10s alone), so three summed steps cost more than they give: under hybrid, the average player wins 63.7% with only the 30s but 51.2% after also unlocking the 20s and 10s. A drafting player would learn to turn unlocks down.
+
+**Decision:** the user chose a normal per-round ramp for S3d (2026-09-14), since forcing players to draft well is the point of the roguelike. A lowest-decade hybrid was run as a research comparison: a ramp plus one step set by the lowest decade unlocked so far, not summed. Same calibration and sample sizes; calibrated k = 23.4, about +13 points per round.
+
+| Unlock path | Targets, rounds 1 → 10 | Average win% | Planner win% |
+|---|---|---|---|
+| no unlocks | 135 → 330 | 0.0 | 0 |
+| 10s → 20s → 30s | 135 → 464 | 82.3 ±1.6 | 100 |
+| 30s → 20s → 10s (calibrated) | 135 → 464 | 49.3 ±2.0 | 98 ±1.4 |
+| 30s → 80s → 20s | 135 → 420 | 0.5 ±0.3 | 47 ±5.0 |
+| 80s → 90s → 30s | 135 → 387 | 0.0 | 0 |
+| 30s only | 135 → 387 | 0.7 ±0.3 | 48 ±5.0 |
+
+**Findings:**
+- **It fixes the stacking problem.** With only the 30s, the average player wins 0.7%, far below the 49.3% for 30s → 20s → 10s, so more low unlocks now always help.
+- **It behaves like a softened ramp.** No unlocks and high-first are unwinnable even for the planner, as with the pure ramp, but the planner rescues about half of the partial paths (47–48%, vs 1–11% under the pure ramp). Because the step follows the lowest decade, the ramp does most of the work, which fits the user's preference for a ramp.
+
 ## Next
 
 S1a–c, S2a–c, S2e and S3a–c are done. Next per `sim-plan-2.md`: the drafting re-runs (S1d, S2d, S3d) and S3e (board variety along the unlock path). S3d needs targets that climb as unlocks arrive: a 40–79 start tuned for no unlocks becomes unlosable after one low unlock, and one unlock is worth 34–81% higher targets.
