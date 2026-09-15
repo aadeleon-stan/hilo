@@ -28,7 +28,7 @@ Notes for continuing research on another machine or in a new session. The goal i
 - odds and guarantee upgrades
 - a constrained start with decade unlocks
 
-The harness changes it required are done (weighted draws, per-pool range guarantees, `targetScale`, `startConfig` range presets, and `parallel.mjs` for multi-core runs) and validated: `harness-selftest.mjs` passes, and `baseline.mjs` still reproduces the original win rates (average 66.0% ±2.7 / planner 99.0% ±0.6 on 300 runs each, both within noise of the table below). S1a–c, S2a–c, S2e and S3a are done (findings in `upgrades-research-2.md`); next up per the plan's order is S3b–c on the 40–79 start, then the drafting re-runs.
+The harness changes it required are done (weighted draws, per-pool range guarantees, `targetScale`, `startConfig` range presets, and `parallel.mjs` for multi-core runs) and validated: `harness-selftest.mjs` passes, and `baseline.mjs` still reproduces the original win rates (average 66.0% ±2.7 / planner 99.0% ±0.6 on 300 runs each, both within noise of the table below). S1a–c, S2a–c, S2e and S3a–c are done (findings in `upgrades-research-2.md`); next up is the drafting re-runs (S1d, S2d, S3d) and S3e.
 
 ## Decisions the user has made (keep to these)
 
@@ -65,7 +65,9 @@ All scripts import the shipped rules from `src/store/gameLogic.js`. Run them fro
 | `s2b-weights.mjs` | Round 2 S2b: win-rate change for 10s-up / 90s-down odds weights, one pool vs both. | `N=300 node s2b-weights.mjs` |
 | `s2c-stacking.mjs` | Round 2 S2c: win rate after 1–4 stacks of one odds upgrade (granted after rounds 1, 3, 5, 7), at a harder `TARGET_SCALE` so later stacks aren't hidden by the 100% ceiling. | `UPGRADE=tens1.5 TARGET_SCALE=1.062 node s2c-stacking.mjs` |
 | `s2e-odds-chart.mjs` | Round 2 S2e: exact (non-simulated) odds-chart data for weighted pool draws — per-decade expected counts, P(≥1 ten), via a small DP. Self-checks against the closed-form hypergeometric distribution. | `node s2e-odds-chart.mjs` |
-| `s3a-retune.mjs` | Round 2 S3a: binary-searches `targetScale` for a constrained starting range until the average player's win rate matches today's baseline, then confirms the planner. | `RANGE=40,79 N_AVG=200 N_PLANNER=100 node s3a-retune.mjs` |
+| `s3a-retune.mjs` | Round 2 S3a: binary-searches `targetScale` until the average player's win rate matches `TARGET_WIN` (default 66%), then confirms the planner (`N_PLANNER=0` skips). `UNLOCK` adds decades from the start and `UNLOCK_PATH` adds them after `GRANT_ROUNDS`, which S3b–c use to value unlocks past the win-rate ceiling. | `RANGE=40,79 UNLOCK=10 N_AVG=400 N_PLANNER=0 node s3a-retune.mjs` |
+| `s3b-unlock-values.mjs` | Round 2 S3b: win rate and energy per round for each decade unlock (and trade-off pair) granted after round 1 on a constrained start. | `TARGET_SCALE=0.564 N=600 node s3b-unlock-values.mjs` |
+| `s3c-unlock-order.mjs` | Round 2 S3c: fixed unlock paths granted after rounds 2, 4 and 6, including two paths with the same decades in opposite orders. | `TARGET_SCALE=0.564 N=600 node s3c-unlock-order.mjs` |
 | `draft-pool.mjs` | Round 1 drafting offer pool (12 stackable upgrades with measured values), picking strategies and `draftHook`. | imported by `drafting.mjs` |
 | `baseline.mjs` | Harness validation with no upgrades. | `PLAYERS=average,planner N=300 node baseline.mjs` |
 | `single-round-restrictions.mjs` | Single-round cost with decades or ones digits removed. | `N=1500 node single-round-restrictions.mjs` |

@@ -206,8 +206,72 @@ Steps in P(≥1 ten) as the 10s weight climbs: ×1→×1.5 is +13.1pp, ×1.5→�
 - **Planner win rate landed at 100% for all three, slightly above the ≈99% target** — within 1 SE of it at n=100 (stderr ≈1.0pt), so not a real miss, but worth another look with a bigger n before finalizing a starting range, since a planner ceiling this close to 100% leaves little room to confirm "skilled players should almost always win" against "average players win near half" simultaneously once unlocks are layered on top.
 - **S3b–e will use 40–79** (`targetScale` 0.564), the user's choice on 2026-09-14.
 
-**Not yet done:** S3b (unlock values), S3c (unlock order), S3d (drafting with unlocks), S3e (board variety along the unlock path).
+### S3b. Unlock values
+
+`research/sims/s3b-unlock-values.mjs`. Each unlock adds a decade to both pools after round 1. Average player, 600 runs per unlock, 1,200 with no unlock, at the retuned target (`targetScale` 0.564) and at a harder one (0.589, where the average player wins about a third of runs with no unlock).
+
+| Unlock | Win%, scale 0.564 | Spent/round | Win%, scale 0.589 | Spent/round |
+|---|---|---|---|---|
+| none | 65.9% ±1.4 | 57.4 | 32.8% ±1.4 | 58.9 |
+| +10s | 100.0% | 22.4 | 100.0% | 23.4 |
+| +10s & +90s | 100.0% | 27.3 | 100.0% | 29.5 |
+| +20s | 100.0% | 34.1 | 100.0% | 35.7 |
+| +20s & +80s | 100.0% | 38.9 | 100.0% | 40.7 |
+| +30s | 100.0% | 42.3 | 100.0% | 44.3 |
+| +30s & +80s | 99.8% ±0.2 | 46.6 | 98.5% ±0.5 | 48.4 |
+| +80s | 21.5% ±1.7 | 59.7 | 6.5% ±1.0 | 61.0 |
+| +90s | 22.3% ±1.7 | 59.8 | 5.0% ±0.9 | 61.1 |
+
+Spent/round is the mean energy spent per cleared round, including round 1 before the unlock. For the losing unlocks it only covers rounds that were cleared, so it understates their cost.
+
+**Retune per unlock state.** Because win rate saturates, each unlock is also valued by how far targets can rise with it in place while the average player still wins about 66% (`s3a-retune.mjs` with `UNLOCK`; 400 runs per search point; planner not checked). Here the unlock is present from round 1: granted after round 1, round 1 itself would be unwinnable at the higher targets. Each result is one 400-run sample that landed within about 2 points of 66% (±2.4), roughly ±0.01 in `targetScale`.
+
+| Unlock | `targetScale` at ~66% | Target headroom vs no unlock |
+|---|---|---|
+| none | 0.564 (68.0%) | — |
+| +10s | 1.021 (66.0%) | +81% |
+| +10s & +90s | 0.899 (66.8%) | +59% |
+| +20s | 0.869 (65.8%) | +54% |
+| +20s & +80s | 0.777 (62.5%) | +38% |
+| +30s | 0.757 (68.3%) | +34% |
+| +30s & +80s | 0.686 (66.8%) | +22% |
+| +80s | 0.523 (67.0%) | −7% |
+| +90s | 0.523 (69.5%) | −7% |
+
+The +20s & +80s search stopped at 62.5%, so its true scale is slightly below 0.777.
+
+**Findings:**
+- **Low unlocks are worth far more than high ones, as the plan expected, and the closer to 10 the better:** +10s lets targets rise 81%, +20s 54%, +30s 34%.
+- **High unlocks alone are penalties.** +80s or +90s drops the average player from 66% to about 22% at the retuned target, and forces targets down 7% in the retune.
+- **Any low unlock makes a 40–79 run unlosable at a fixed target** (100% at both 0.564 and 0.589), so fixed-target win rates can't rank the low unlocks; the retune can.
+- **The trade-off pairs are close calls against the next-weaker single unlock, not against no unlock.** Adding a high decade removes 12–22 points of headroom (+10s: 81 → 59; +20s: 54 → 38; +30s: 34 → 22). That puts +10s & +90s (+59) just above +20s alone (+54), and +20s & +80s (+38, probably a little less) just above +30s (+34). Those are the real choices; +30s & +80s is simply worse than +30s. Energy per round ranks them the same way.
+
+### S3c. Unlock order
+
+`research/sims/s3c-unlock-order.mjs`. Three unlocks granted after rounds 2, 4 and 6. Near-first and lowest-first unlock the same decades in opposite orders, so they're the real order test; high-first and alternating also unlock different decades. Average player, 600 runs per path, 1,200 with no unlocks, `targetScale` 0.564.
+
+| Path | Order | Win% | Spent/round | Deaths in rounds 6–10 |
+|---|---|---|---|---|
+| none | — | 65.1% ±1.4 | 57.5 | 0 / 0 / 1 / 10 / 24% |
+| lowest-first | 10s → 20s → 30s | 100.0% | 23.2 | none |
+| near-first | 30s → 20s → 10s | 100.0% | 29.5 | none |
+| alternating | 30s → 80s → 20s | 100.0% | 40.1 | none |
+| high-first | 80s → 90s → 30s | 61.3% ±2.0 (−3.8, noise) | 57.4 | 2 / 3 / 9 / 12 / 14% |
+
+Same ceiling as S3b: every path with a low decade by round 4 wins every run at this target. So each path was also retuned (`s3a-retune.mjs` with `UNLOCK_PATH`, same settings as the S3b retune).
+
+| Path | Order | `targetScale` at ~66% | Target headroom vs no unlocks |
+|---|---|---|---|
+| lowest-first | 10s → 20s → 30s | 1.011 (67.3%) | +79% |
+| near-first | 30s → 20s → 10s | 0.889 (66.5%) | +58% |
+| alternating | 30s → 80s → 20s | 0.747 (67.8%) | +32% |
+| high-first | 80s → 90s → 30s | 0.559 (66.0%) | −1% |
+
+**Findings:**
+- **Order matters a lot.** Lowest-first and near-first unlock the same decades, yet getting the 10s first lets targets rise 79% instead of 58%. At its retuned target, near-first loses most often in round 6 (12% of runs), the last round before its 10s arrive. Energy at the fixed target agrees (23.2 per round vs 29.5).
+- **The 10s carry the path.** Lowest-first supports about the same targets as having only the 10s from round 1 (+79% vs +81%), which suggests the later 20s and 30s add little once the 10s are in. The two setups also differ in rounds 1–2, so this isn't a clean test.
+- **High-first is worth nothing overall** (−1%): the 80s and 90s cost about what the late 30s give back. At the fixed target its runs die earlier but less often in round 10.
 
 ## Next
 
-S1a–c, S2a–c, S2e and S3a are done. Next per `sim-plan-2.md`: **S3b–c** on the 40–79 start, then the drafting re-runs (S1d, S2d, S3d).
+S1a–c, S2a–c, S2e and S3a–c are done. Next per `sim-plan-2.md`: the drafting re-runs (S1d, S2d, S3d) and S3e (board variety along the unlock path). S3d needs targets that climb as unlocks arrive: a 40–79 start tuned for no unlocks becomes unlosable after one low unlock, and one unlock is worth 34–81% higher targets.
