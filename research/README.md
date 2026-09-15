@@ -28,7 +28,7 @@ Notes for continuing research on another machine or in a new session. The goal i
 - odds and guarantee upgrades
 - a constrained start with decade unlocks
 
-The harness changes it required are done (weighted draws, per-pool range guarantees, `targetScale`, `startConfig` range presets, and `parallel.mjs` for multi-core runs) and validated: `harness-selftest.mjs` passes, and `baseline.mjs` still reproduces the original win rates (average 66.0% ±2.7 / planner 99.0% ±0.6 on 300 runs each, both within noise of the table below). S1a, S2e and S3a are done (findings in `upgrades-research-2.md`); next up per the plan's order is S1b–c and S2a–c in parallel, then S3b–c.
+The harness changes it required are done (weighted draws, per-pool range guarantees, `targetScale`, `startConfig` range presets, and `parallel.mjs` for multi-core runs) and validated: `harness-selftest.mjs` passes, and `baseline.mjs` still reproduces the original win rates (average 66.0% ±2.7 / planner 99.0% ±0.6 on 300 runs each, both within noise of the table below). S1a–c, S2a–c, S2e and S3a are done (findings in `upgrades-research-2.md`); next up per the plan's order is S3b–c on the 40–79 start, then the drafting re-runs.
 
 ## Decisions the user has made (keep to these)
 
@@ -59,6 +59,11 @@ All scripts import the shipped rules from `src/store/gameLogic.js`. Run them fro
 | `harness-selftest.mjs` | Validates the harness itself: weighted-draw frequencies, per-pool guarantees (including that over-budget ones throw), `startConfig` ranges. Run after any harness change, before trusting new results. | `node harness-selftest.mjs` |
 | `parallel.mjs` | Launcher: runs a script across `SHARDS` processes (one per core) and merges the raw results it sends back over IPC. The target script must use `runShardAware` in place of `runMany` (as many calls as it likes; each is summarized in order) and skip printing when it returns `null`. | `SHARDS=6 node parallel.mjs some-sim.mjs` |
 | `s1a-pair-screen.mjs` | Round 2 S1a: single-round cost for all 145 ones-digit pair-removal variants (45 both-pools, 100 ordered per-pool). | `N=20000 node s1a-pair-screen.mjs` |
+| `s1b-pair-winrate.mjs` | Round 2 S1b: full-run win-rate change for ones-digit pairs removed from both pools after round 1. A 15-pair sample by default; `PAIRS=all` with `SHARD`/`SHARDS` splits all 45 across processes, and `BASE_N=0` skips the baseline. | `N=300 BASE_N=1200 node s1b-pair-winrate.mjs` |
+| `s1c-pair-symmetry.mjs` | Round 2 S1c: (x removed from A, y from B) vs the swap, for three pairs. | `N=600 node s1c-pair-symmetry.mjs` |
+| `s2a-guarantees.mjs` | Round 2 S2a: win-rate change for "at least N tens" guarantees, one pool vs both. | `N=300 node s2a-guarantees.mjs` |
+| `s2b-weights.mjs` | Round 2 S2b: win-rate change for 10s-up / 90s-down odds weights, one pool vs both. | `N=300 node s2b-weights.mjs` |
+| `s2c-stacking.mjs` | Round 2 S2c: win rate after 1–4 stacks of one odds upgrade (granted after rounds 1, 3, 5, 7), at a harder `TARGET_SCALE` so later stacks aren't hidden by the 100% ceiling. | `UPGRADE=tens1.5 TARGET_SCALE=1.062 node s2c-stacking.mjs` |
 | `s2e-odds-chart.mjs` | Round 2 S2e: exact (non-simulated) odds-chart data for weighted pool draws — per-decade expected counts, P(≥1 ten), via a small DP. Self-checks against the closed-form hypergeometric distribution. | `node s2e-odds-chart.mjs` |
 | `s3a-retune.mjs` | Round 2 S3a: binary-searches `targetScale` for a constrained starting range until the average player's win rate matches today's baseline, then confirms the planner. | `RANGE=40,79 N_AVG=200 N_PLANNER=100 node s3a-retune.mjs` |
 | `draft-pool.mjs` | Round 1 drafting offer pool (12 stackable upgrades with measured values), picking strategies and `draftHook`. | imported by `drafting.mjs` |
