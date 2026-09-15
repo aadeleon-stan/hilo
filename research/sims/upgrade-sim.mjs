@@ -114,9 +114,8 @@ function applyRerolls(cfg, A, B) {
     const maxA = Math.max(...A), maxB = Math.max(...B);
     const [pool, domain] = maxA >= maxB ? [A, cfg.domainA] : [B, cfg.domainB];
     const idx = pool.indexOf(Math.max(...pool));
-    let v;
-    do v = pick(domain); while (!cfg.allowRepeats && pool.includes(v));
-    pool[idx] = v;
+    const candidates = cfg.allowRepeats ? domain : domain.filter((v) => !pool.includes(v));
+    pool[idx] = pickWeighted(candidates, weightOf(cfg, pool === A ? 'A' : 'B'));
   }
 }
 

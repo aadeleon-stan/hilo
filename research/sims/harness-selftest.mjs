@@ -10,7 +10,7 @@ function check(name, ok, detail) {
 }
 
 // 1. Weighted draws: isolate pickWeighted from without-replacement effects with
-// poolSize 1, half the domain at weight 1 and half at weight 3 (expect ~75% low).
+// poolSize 1, half the domain at weight 1 and half at weight 3 (expect ~75% high).
 {
   const N = 100000;
   const weights = ALL_VALUES.map((v) => (v < 55 ? 1 : 3));
@@ -21,7 +21,7 @@ function check(name, ok, detail) {
     if (v >= 55) highCount++;
   }
   const observed = highCount / N;
-  const expected = 0.75; // 40*1 low, 50*3 high -> 150/(40+150)
+  const expected = 0.75; // 45 values at weight 1 (10-54), 45 at weight 3 (55-99): 135/180
   const se = Math.sqrt(expected * (1 - expected) / N);
   check('weighted draw frequency matches weights', Math.abs(observed - expected) < 5 * se,
     `observed ${(observed * 100).toFixed(2)}%, expected ${(expected * 100).toFixed(2)}% ±${(5 * se * 100).toFixed(2)}`);
@@ -80,12 +80,12 @@ function check(name, ok, detail) {
   check('over-budget guarantee total throws', threw);
 }
 
-// 6. Guarantees that ask for more distinct values than the domain has throw.
+// 6. A guarantee the (narrowed) domain can't supply throws, for that reason.
 {
-  const cfg = { ...startConfig([10, 15]), poolSize: 3, guaranteesA: [{ min: 10, max: 15, count: 3 }, { min: 90, max: 99, count: 1 }] };
-  let threw = false;
-  try { drawPool(cfg, 'A', cfg.domainA); } catch { threw = true; }
-  check('guarantee needing values outside a narrowed domain throws', threw);
+  const cfg = { ...baseConfig(), ...startConfig([20, 59]), guaranteesA: [{ min: 10, max: 19, count: 1 }] };
+  let msg = '';
+  try { drawPool(cfg, 'A', cfg.domainA); } catch (e) { msg = e.message; }
+  check('guarantee the narrowed domain cannot supply throws', msg.includes('domain has only 0'), msg || 'did not throw');
 }
 
 // 7. startConfig narrows both domains to the given inclusive range.

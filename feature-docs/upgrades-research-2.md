@@ -6,6 +6,8 @@ Continues `upgrades-research.md` for the three directions added to `upgrades.txt
 
 Before any of this, `research/sims/upgrade-sim.mjs` needed: weighted draws (`weightsA`/`weightsB`), per-pool range guarantees (`guaranteesA`/`guaranteesB`), a `targetScale` multiplier, `startConfig(range)` presets, and multi-core sharding (`runShardAware` + `research/sims/parallel.mjs`). Done and validated: `research/sims/harness-selftest.mjs` passes (weighted-draw frequencies, guarantee enforcement, `startConfig`), and `baseline.mjs` still reproduces the original win rates (average 66.0% ±2.7 / planner 99.0% ±0.6 on 300 runs, both within noise of the round-1 numbers).
 
+Fixes from reviewing that commit: rerolls now draw using the pool's weights (they had ignored them), `parallel.mjs` merges every `runShardAware` call a script makes instead of silently keeping only the last one, and a self-test that passed for the wrong reason now checks for the error it means to test.
+
 ## S1. Ones-digit pair upgrades
 
 ### S1a. Single-round cost screen
@@ -48,9 +50,9 @@ Before any of this, `research/sims/upgrade-sim.mjs` needed: weighted draws (`wei
 Full table and heat map in the script's output (not committed — rerun `N=20000 node s1a-pair-screen.mjs` from `research/sims/`, ~36s single-threaded).
 
 **Findings:**
-- **Round 1 undersold this family.** Round 1 measured single digits 5 and 7 as strongest; at N=20,000 the strongest *pairs* are combinations of 5–9, and **8 & 9** and **5/6/7 & 8** edge out **5 & 7** slightly (4.3–4.8% vs 3.8%). High ones digits (5-9) still dominate the top of the list, but 5 and 7 aren't uniquely special — this is a family effect from removing two high digits, not from those two particular values.
-- **Low digits (0-4) are a straight penalty when paired with each other.** Every low-low pair costs more energy than baseline; the worst three (1&2, 1&3, 0&1) cost 4.7-5.2% more. This mirrors round 1's decade finding (removing the 10s costs energy) at ones-digit scale: 0-4 disproportionately supply cheap, useful moves.
-- **A clean rarity split by both-pools value:** roughly a third of pairs (mostly high-high, ~15 pairs, 1.2-4.8% saved) look like real, positive upgrades; another third (mostly high-low mixes) are noise; the bottom third (low-low pairs) actively hurt and shouldn't be offered as upgrades at all — or would need reframing as a real trade-off (e.g. paired with a compensating buff) if offered.
+- **The value comes from high digits, not from 5 and 7 specifically.** Round 1 found 5 and 7 the strongest single digits and measured removing both at +9 win-rate points. Here, all top 10 pairs use two digits from 5–9, and 5 & 7 (3.8%) sits mid-pack among them. The leaders (5 & 8, 6 & 8 at 4.8%) are only about 1 point ahead of 5 & 7, roughly 2 SE for a difference between two variants, so the order within the top 10 is unsettled. This is single-round energy, not win rate; S1b checks whether it carries through to full runs.
+- **Pairs of low digits (0–4) are a penalty.** All 10 low-low pairs cost more energy than baseline, beyond noise; the worst three (1 & 2, 1 & 3, 0 & 1) cost 4.7–5.2% more. This echoes round 1's finding that removing the 10s costs energy. The likely reason, not measured here, is that numbers ending in 0–4 supply many of the cheap, useful moves.
+- **A rarity split falls out of the both-pools table:** 17 pairs save energy beyond noise (all contain a digit from 5–9, and the top 10 use two), 15 are within noise, and 13 cost energy beyond noise (the 10 low-low pairs plus 3 & 6, 1 & 6 and 1 & 7). That last group shouldn't be offered as upgrades, or would need reframing as a trade-off with a compensating buff.
 - **Ordered (per-pool) assignments follow the same pattern** as the both-pools case — high digit removed from either pool helps, low digit removed from either pool hurts — with rough symmetry between (dA, dB) and (dB, dA) in the heat map (e.g. A:8,B:9 saved 3.3%, A:9,B:8 saved 2.6%, both far from the low-digit cells). This is consistent with the plan's expectation that pool assignment shouldn't matter on its own; S1c should confirm this formally with matched-pair runs rather than reading it off two single cells.
 
 **Not yet done:** S1b (full-run win-rate change for a sample of strong/weak/median pairs), S1c (formal symmetry check), S1d (drafting re-run with the pair family added).
@@ -71,11 +73,11 @@ Full table and heat map in the script's output (not committed — rerun `N=20000
 | 90s ×0.25 | 1.090 | 0.283 | 1.090 | 70.66% |
 | 10s ×2 + 90s ×0.5 | 1.827 | 0.488 | 0.955 | 89.27% |
 
-Marginal step size on P(≥1 ten) as 10s weight climbs: baseline→×1.5 is +13.1pp, ×1.5→×2 is +7.6pp, ×2→×3 is +7.2pp. This is diminishing, but slowly — it doesn't level off hard until weight is high enough to push P(≥1 ten) into the 90s (consistent with the plan's expectation of diminishing returns, but the useful stacking range looks wider than three steps).
+Steps in P(≥1 ten) as the 10s weight climbs: ×1→×1.5 is +13.1pp, ×1.5→×2 is +7.6pp, ×2→×3 is +7.2pp. The steps differ in size, so per +1 of weight that's +26.2, +15.1 and +7.2pp: strongly diminishing, as the plan expected. How much that matters for tuning depends on the full-run stacking curve (S2c), not on this chart alone.
 
 **Findings:**
 - **Weighting 90s down barely moves the needle on its own** (90s ×0.25 only lifts P(≥1 ten) by 3.5pp) — its main effect is just fewer 90s (as designed), not more 10s. If the goal is "shift toward better numbers," weighting the 10s up directly is far more effective per step than weighting the 90s down.
-- **The combined setting (10s ×2 + 90s ×0.5) doesn't stack additively** on E[10s]: 1.827 vs 1.740 (10s ×2 alone) — the 90s weight change barely helps the 10s count, as expected, since it only redistributes probability mass among the other 8 decades roughly evenly.
+- **The combined setting (10s ×2 + 90s ×0.5) stacks slightly more than additively** on E[10s]. 10s ×2 alone adds +0.740 and 90s ×0.5 alone adds +0.057 (sum +0.797); together they add +0.827. Cutting the 90s' weight frees probability that flows to other values in proportion to their weight, so the doubled 10s get an outsized share. The effect is small: the 10s weight does almost all the work.
 - **This data is a candidate for the in-game distribution chart** the user proposed (dicebuilder-style): the per-decade expected-count table is exactly what such a chart would show, and it's cheap to compute for any weight setting at runtime (no simulation needed).
 
 **Not yet done:** S2a (guarantee win-rate change), S2b (weight win-rate change — this is what would confirm whether these odds shifts translate to the win-rate range the chart's diminishing-returns curve suggests), S2c (stacking marginal-value curve from full runs), S2d (drafting re-run).
@@ -94,12 +96,15 @@ Marginal step size on P(≥1 ten) as 10s weight climbs: baseline→×1.5 is +13.
 
 **Findings:**
 - **`targetScale` alone was enough** for all three ranges — no max-energy change needed. That's a simpler retune than the plan allowed for.
-- **The scale needed tracks single-round cost directly and predictably.** 40–79 (costliest per round, S1a's preliminary numbers: 99.7 mean energy vs baseline 41.9, about 2.4×) needed targets cut to 56% of today's. 20–59 (cheapest of the three, since it overlaps the 10s–50s: 33.6 mean energy) needed targets *raised* 17% above today's — a constrained range isn't automatically harder once retuned; 20–59 keeps the cheap 10s–20s moves and is easier than the unrestricted 10–99 game at equal targets.
+- **The scale needed follows single-round cost.** From the plan's preliminary single-round numbers (target 300): 40–79 costs 99.7 energy vs 41.9 for 10–99 and needed targets cut to 56%; 30–69 costs 62.0 and needed 85%; 20–59 costs 34.0, *less* than today's game because it drops the expensive 60s–90s, and needed targets raised 17%. A constrained range isn't automatically harder; it depends on which end it cuts.
+- **A 40–79 start is more sensitive to target changes than today's game.** During the 40–79 search, moving `targetScale` from 0.544 to 0.584 (about ±3.5% around the chosen point) swung the average player from 89.0% to 43.5% (n=200 each). The same ±3.5% on 10–99 moved the average player from 81.0% ±2.3 to 50.3% ±2.9 (n=300 each). Both are steep, but 40–79 is about 1.5× as steep, so its real targets would need careful rounding.
+- **Each chosen scale rests on one 200-run sample** that landed within 2 points of 66% with ±3.4 error, so the true average win rate at these points is roughly 60–73%. Good enough to build S3b–c on; re-measure with more runs before quoting it as final.
+- **Targets aren't whole numbers at these scales** (for example 240 × 0.564 = 135.4). The harness compares scores against the fractional target, which acts like rounding up. A real design would pick round numbers.
 - **Planner win rate landed at 100% for all three, slightly above the ≈99% target** — within 1 SE of it at n=100 (stderr ≈1.0pt), so not a real miss, but worth another look with a bigger n before finalizing a starting range, since a planner ceiling this close to 100% leaves little room to confirm "skilled players should almost always win" against "average players win near half" simultaneously once unlocks are layered on top.
-- **These three retuned points are the baseline every other S3 step measures against** — S3b (unlock values), S3c (unlock order), S3d (drafting with unlocks) all need a starting range picked from here, or run across all three.
+- **S3b–e will use 40–79** (`targetScale` 0.564), the user's choice on 2026-09-14.
 
 **Not yet done:** S3b (unlock values), S3c (unlock order), S3d (drafting with unlocks), S3e (board variety along the unlock path).
 
 ## Next
 
-Per `sim-plan-2.md`'s order, S3a is done. Next: **S1b–c and S2a–c in parallel** (full-run win-rate measurements building on S1a/S2e above), then **S3b–c** (which need a starting range chosen from S3a's three retuned points — recommend picking one, or ask the user, before running full S3b–e). Drafting re-runs (S1d, S2d, S3d) last.
+Per `sim-plan-2.md`'s order, S3a is done. Next: **S1b–c and S2a–c in parallel** (full-run win-rate measurements building on S1a/S2e above), then **S3b–c** on the 40–79 start. Drafting re-runs (S1d, S2d, S3d) last.

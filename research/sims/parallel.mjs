@@ -4,8 +4,9 @@
 // research/README.md's Performance section).
 //
 // The target script must call `runShardAware` (from upgrade-sim.mjs) in place
-// of `runMany` for the run(s) it wants sharded, and skip its normal printing
-// when that returns null (it already sent results to this launcher via IPC).
+// of `runMany` for the runs it wants sharded, and skip its normal printing
+// when that returns null. A script may call it several times (e.g. a baseline
+// then variants); each call is merged across shards and summarized in order.
 //
 // Usage: SHARDS=6 node parallel.mjs some-script.mjs
 // Any other env vars the script reads (N=, PLAYER=, ...) pass through as-is.
@@ -24,17 +25,23 @@ const scriptPath = path.resolve(process.cwd(), target);
 const collected = await Promise.all(
   Array.from({ length: shards }, (_, i) => new Promise((resolve, reject) => {
     const child = fork(scriptPath, [], { env: { ...process.env, SHARD: String(i), SHARDS: String(shards) } });
-    let results = null;
-    child.on('message', (msg) => { results = msg; });
+    const messages = [];
+    child.on('message', (msg) => messages.push(msg));
     child.on('error', reject);
     child.on('exit', (code) => {
       if (code !== 0) return reject(new Error(`shard ${i} exited with code ${code}`));
-      if (!results) return reject(new Error(`shard ${i} sent no results — did the script call runShardAware and check SHARDS?`));
-      resolve(results);
+      if (!messages.length) return reject(new Error(`shard ${i} sent no results — did the script call runShardAware?`));
+      resolve(messages);
     });
   }))
 );
 
-const raw = collected.flat();
-console.log(`merged ${raw.length} runs across ${shards} shards`);
-console.log(JSON.stringify(summarize(raw), null, 2));
+const calls = collected[0].length;
+if (collected.some((m) => m.length !== calls)) {
+  throw new Error(`shards made different numbers of runShardAware calls: ${collected.map((m) => m.length).join(', ')}`);
+}
+for (let k = 0; k < calls; k++) {
+  const raw = collected.flatMap((m) => m[k]);
+  console.log(`call ${k + 1} of ${calls}: merged ${raw.length} runs across ${shards} shards`);
+  console.log(JSON.stringify(summarize(raw), null, 2));
+}

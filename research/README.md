@@ -36,6 +36,7 @@ The harness changes it required are done (weighted draws, per-pool range guarant
 - **Smallest-number shortcut:** best plays usually involve the smallest number, and that's fine for now as a human heuristic. Revisit it for the Daily mode.
 - **Run difficulty target:** skilled players should (almost) always win a run, while average players win somewhere near half.
 - **Difficulty is chosen by the user:** the shipped starting target is 240, chosen for its stats, though simulations suggest average players win about 65%. Present options with data and let the user choose.
+- **Constrained-start research uses 40–79** (`targetScale` 0.564) for S3b–e, chosen 2026-09-14.
 - **Playtest settings are dev-only** (`import.meta.env.DEV`). Player-facing features such as Abandon run ship in all builds.
 
 ## Working preferences observed
@@ -56,7 +57,7 @@ All scripts import the shipped rules from `src/store/gameLogic.js`. Run them fro
 |---|---|---|
 | `upgrade-sim.mjs` | **Harness**, a library. Mirrors `useGameStore.confirmSelection` for Run mode, with configurable pools, energy rules, target scale/offset, per-move energy/points modifiers and an upgrade hook after each round won. Exports `baseConfig`, `startConfig`, `drawPool`, `simulateRun`, `runMany`, `runManyRaw`, `runShardAware`, `myShare`, `summarize`, `players` (`average`, `planner`), `greedyRound`, `plannerRound`, `applyMove`. | imported by the others |
 | `harness-selftest.mjs` | Validates the harness itself: weighted-draw frequencies, per-pool guarantees (including that over-budget ones throw), `startConfig` ranges. Run after any harness change, before trusting new results. | `node harness-selftest.mjs` |
-| `parallel.mjs` | Launcher: runs a script across `SHARDS` processes (one per core) and merges the raw results it sends back over IPC. The target script must use `runShardAware` in place of `runMany` and skip printing when it returns `null`. | `SHARDS=6 node parallel.mjs some-sim.mjs` |
+| `parallel.mjs` | Launcher: runs a script across `SHARDS` processes (one per core) and merges the raw results it sends back over IPC. The target script must use `runShardAware` in place of `runMany` (as many calls as it likes; each is summarized in order) and skip printing when it returns `null`. | `SHARDS=6 node parallel.mjs some-sim.mjs` |
 | `s1a-pair-screen.mjs` | Round 2 S1a: single-round cost for all 145 ones-digit pair-removal variants (45 both-pools, 100 ordered per-pool). | `N=20000 node s1a-pair-screen.mjs` |
 | `s2e-odds-chart.mjs` | Round 2 S2e: exact (non-simulated) odds-chart data for weighted pool draws — per-decade expected counts, P(≥1 ten), via a small DP. Self-checks against the closed-form hypergeometric distribution. | `node s2e-odds-chart.mjs` |
 | `s3a-retune.mjs` | Round 2 S3a: binary-searches `targetScale` for a constrained starting range until the average player's win rate matches today's baseline, then confirms the planner. | `RANGE=40,79 N_AVG=200 N_PLANNER=100 node s3a-retune.mjs` |
