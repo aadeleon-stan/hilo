@@ -1,5 +1,7 @@
 # Simulation Plan: Upgrades Research Round 2
 
+**Status (2026-09-15):** S1a–c, S2a–c, S2e and S3a–c are done (`feature-docs/upgrades-research-2.md`). The remaining steps (S1d, S2d, S3d, S3e) are replaced by `research/sim-plan-3.md`.
+
 Plans the next simulations for the notes added to `feature-docs/upgrades.txt` on 2026-09-14 ("Updates after first research round"). Round 1 results are in `feature-docs/upgrades-research.md`. Scripts are in `research/sims/`; see `research/README.md` for how to run them.
 
 **Deliverable when done:** add the findings to `feature-docs/upgrades-research.md` as new sections, or put them in `feature-docs/upgrades-research-2.md` if they grow large. Don't change game code; this is still research.

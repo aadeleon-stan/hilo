@@ -297,7 +297,7 @@ Each cell is average-player win % / planner win %:
 - **A flat step punishes high unlocks twice** (they raise targets like any unlock and make rounds costlier), so taking one is fatal.
 - **Summed steps (decade and hybrid) give graded outcomes,** with the planner at 74% or better on every path, **but they overcharge for stacking.** S3c found unlock values don't add up (10s → 20s → 30s is worth about the same as 10s alone), so three summed steps cost more than they give: under hybrid, the average player wins 63.7% with only the 30s but 51.2% after also unlocking the 20s and 10s. A drafting player would learn to turn unlocks down.
 
-**Decision:** the user chose a normal per-round ramp for S3d (2026-09-14), since forcing players to draft well is the point of the roguelike. A lowest-decade hybrid was run as a research comparison: a ramp plus one step set by the lowest decade unlocked so far, not summed. Same calibration and sample sizes; calibrated k = 23.4, about +13 points per round.
+**Decision:** the user chose a normal per-round ramp for S3d (2026-09-14), since forcing players to draft well is the point of the roguelike. **Superseded 2026-09-15:** targets must never respond to draft choices, which rules out every unlock-linked option here (flat, decade, hybrid, lowest-decade). The replacement is a fixed schedule with lower early targets and a super-linear ramp; see `research/sim-plan-3.md`. A lowest-decade hybrid was run as a research comparison: a ramp plus one step set by the lowest decade unlocked so far, not summed. Same calibration and sample sizes; calibrated k = 23.4, about +13 points per round.
 
 | Unlock path | Targets, rounds 1 → 10 | Average win% | Planner win% |
 |---|---|---|---|
@@ -314,4 +314,4 @@ Each cell is average-player win % / planner win %:
 
 ## Next
 
-S1a–c, S2a–c, S2e and S3a–c are done. Next per `sim-plan-2.md`: the drafting re-runs (S1d, S2d, S3d) and S3e (board variety along the unlock path). S3d needs targets that climb as unlocks arrive: a 40–79 start tuned for no unlocks becomes unlosable after one low unlock, and one unlock is worth 34–81% higher targets.
+S1a–c, S2a–c, S2e and S3a–c are done. The rest of `sim-plan-2.md` (S1d, S2d, S3d, S3e) is replaced by `research/sim-plan-3.md`, drafted after the user's 2026-09-15 notes. Those notes change how several findings above should be read: upgrades aren't meant to be balanced one by one, difficulty must not respond to draft choices, and synergies matter more than solo values. `sim-plan-3.md` lists which findings still stand and which are withdrawn.

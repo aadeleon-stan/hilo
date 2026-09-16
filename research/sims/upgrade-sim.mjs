@@ -22,6 +22,7 @@ export function baseConfig() {
     domainB: ALL_VALUES,
     poolSize: 9,
     targetExtra: 0, // added to every round target (harder difficulty for planner tests)
+    targets: null, // round targets: array of RUN_ROUNDS values or (round) => target; default is the shipped formula
     targetScale: 1, // (target + targetExtra) * targetScale — for constrained-start retunes
     allowRepeats: false,
     guaranteeTens: false, // shorthand for guaranteesA/B += {min:10, max:19, count:1} in both pools
@@ -37,6 +38,11 @@ export function baseConfig() {
     keepSmallest: false, // carry each pool's smallest number into the next round
     energyMod: null, // (a, b, highWord) => highWord
     pointsMod: null, // (a, b, lowWord) => lowWord
+    moneyPerRound: 0, // money rates, summed for each round won by roundMoney
+    moneyPerTurnLeft: 0,
+    moneyPerOvershoot: 0,
+    moneyPerOptimal: 0,
+    moneyWeight: 0, // how much energy one unit of money is worth to the player (0 = ignores money)
   };
 }
 
@@ -115,6 +121,7 @@ function applyRerolls(cfg, A, B) {
     const [pool, domain] = maxA >= maxB ? [A, cfg.domainA] : [B, cfg.domainB];
     const idx = pool.indexOf(Math.max(...pool));
     const candidates = cfg.allowRepeats ? domain : domain.filter((v) => !pool.includes(v));
+    if (!candidates.length) continue;
     pool[idx] = pickWeighted(candidates, weightOf(cfg, pool === A ? 'A' : 'B'));
   }
 }
@@ -130,8 +137,26 @@ export function moveCost(cfg, a, b) {
 
 const zeroStats = () => ({ gross: 0, bonus: 0, bonusLost: 0, refund: 0, refundLost: 0, bestPlays: 0 });
 
+export function roundTarget(cfg, round) {
+  const t = cfg.targets;
+  const base = !t ? getRunTarget(round) : typeof t === 'function' ? t(round) : t[round - 1];
+  return (base + cfg.targetExtra) * cfg.targetScale;
+}
+
+// Schedules for cfg.targets: T1 + c * (r - 1)^p, and T1 * g^(r - 1).
+export const powerTargets = (T1, c, p) => Array.from({ length: RUN_ROUNDS }, (_, i) => T1 + c * i ** p);
+export const geometricTargets = (T1, g) => Array.from({ length: RUN_ROUNDS }, (_, i) => T1 * g ** i);
+
+// Money a round earns if it ends in state st (score s, turns used t, Optimal plays in f).
+export function roundMoney(cfg, st, round) {
+  return cfg.moneyPerRound
+    + cfg.moneyPerTurnLeft * (cfg.poolSize - st.t)
+    + cfg.moneyPerOvershoot * Math.max(0, st.s - roundTarget(cfg, round))
+    + cfg.moneyPerOptimal * st.f.bestPlays;
+}
+
 export function applyMove(cfg, st, A, B, i, j, round) {
-  const target = (getRunTarget(round) + cfg.targetExtra) * cfg.targetScale;
+  const target = roundTarget(cfg, round);
   // Best plays use the shipped rule on raw products.
   const wasBest = getBestPlays(poolsFrom(A, st.ua), poolsFrom(B, st.ub), st.s, target, st.e, RUN_ROUNDS - round + 1).has(`${i}:${j}`);
   const { h, l } = moveCost(cfg, A[i], B[j]);
@@ -163,12 +188,17 @@ function openMoves(cfg, st) {
 }
 
 export function greedyRound(cfg, A, B, E, round, lam) {
+  const target = roundTarget(cfg, round);
   let st = fresh(E);
   while (!st.outcome) {
     let best = null, bv = -Infinity;
     for (const [i, j] of openMoves(cfg, st)) {
       const { h, l } = moveCost(cfg, A[i], B[j]);
-      const v = l - lam * h;
+      let v = l - lam * h;
+      // Money only comes from finishing: the overshoot and the turns left over.
+      if (cfg.moneyWeight && st.s + l >= target) {
+        v += lam * cfg.moneyWeight * (cfg.moneyPerOvershoot * (st.s + l - target) + cfg.moneyPerTurnLeft * (cfg.poolSize - st.t - 1));
+      }
       if (v > bv) { bv = v; best = [i, j]; }
     }
     st = applyMove(cfg, st, A, B, best[0], best[1], round);
@@ -177,6 +207,7 @@ export function greedyRound(cfg, A, B, E, round, lam) {
 }
 
 export function plannerRound(cfg, A, B, E, round) {
+  const worth = cfg.moneyWeight ? (st) => st.e + cfg.moneyWeight * roundMoney(cfg, st, round) : (st) => st.e;
   let bestEnd = null;
   for (const lam of [0.5, 1.5, 3, 6]) {
     let states = [fresh(E)];
@@ -184,7 +215,7 @@ export function plannerRound(cfg, A, B, E, round) {
       const next = [];
       for (const st of states) for (const [i, j] of openMoves(cfg, st)) {
         const ns = applyMove(cfg, st, A, B, i, j, round);
-        if (ns.outcome === 'win') { if (!bestEnd || ns.e > bestEnd.e) bestEnd = ns; }
+        if (ns.outcome === 'win') { if (!bestEnd || worth(ns) > worth(bestEnd)) bestEnd = ns; }
         else if (!ns.outcome) next.push(ns);
       }
       next.sort((x, y) => (y.s - lam * (E - y.e)) - (x.s - lam * (E - x.e)));
@@ -202,38 +233,41 @@ export const players = {
   planner: plannerRound,
 };
 
-// Simulates one run. onRoundWin(cfg, round, energy) may return a new config
-// (an upgrade); raising maxEnergy also adds the difference to current energy.
+// Simulates one run. onRoundWin(cfg, round, energy, draft) may return a new
+// config (an upgrade) and may push a record of its offer onto draft, which the
+// run returns; raising maxEnergy also adds the difference to current energy.
 export function simulateRun(player, startCfg, { onRoundWin } = {}) {
   let cfg = startCfg;
   let E = cfg.maxEnergy;
   let keptA, keptB;
   const rounds = [];
+  const draft = [];
   for (let r = 1; r <= RUN_ROUNDS; r++) {
     const A = drawPool(cfg, 'A', cfg.domainA, keptA);
     const B = drawPool(cfg, 'B', cfg.domainB, keptB);
     applyRerolls(cfg, A, B);
     const x = player(cfg, A, B, E, r);
-    if (x.outcome !== 'win') return { won: false, deathRound: r, energyAtDeath: E, rounds, cfg };
-    rounds.push({ round: r, startEnergy: E, endEnergy: x.e, turnsLeft: cfg.poolSize - x.t, overshoot: x.s - (getRunTarget(r) + cfg.targetExtra) * cfg.targetScale, ...x.f });
+    if (x.outcome !== 'win') return { won: false, deathRound: r, energyAtDeath: E, rounds, cfg, draft };
+    rounds.push({ round: r, startEnergy: E, endEnergy: x.e, turnsLeft: cfg.poolSize - x.t, overshoot: x.s - roundTarget(cfg, r), money: roundMoney(cfg, x, r), ...x.f });
     E = x.e;
     if (cfg.keepSmallest) { keptA = Math.min(...A); keptB = Math.min(...B); }
     if (onRoundWin && r < RUN_ROUNDS) {
-      const next = onRoundWin(cfg, r, E);
+      const next = onRoundWin(cfg, r, E, draft);
       if (next !== cfg) {
         if (next.maxEnergy > cfg.maxEnergy) E += next.maxEnergy - cfg.maxEnergy;
         cfg = next;
       }
     }
   }
-  return { won: true, rounds, cfg };
+  return { won: true, rounds, cfg, draft };
 }
 
-const median = (arr) => {
+const quantile = (arr, p) => {
   if (!arr.length) return null;
   const s = [...arr].sort((a, b) => a - b);
-  return s[Math.floor(0.5 * (s.length - 1))];
+  return s[Math.floor(p * (s.length - 1))];
 };
+const median = (arr) => quantile(arr, 0.5);
 
 export function summarize(results) {
   const n = results.length;
@@ -244,8 +278,17 @@ export function summarize(results) {
   results.forEach((r) => r.rounds.forEach((rd) => byRound[rd.round].push(rd)));
   const mean = (arr, k) => (arr.length ? arr.reduce((t, x) => t + x[k], 0) / arr.length : 0);
   const cleared = results.flatMap((r) => r.rounds);
+  const roundsCleared = results.map((r) => r.rounds.length);
+  const meanCleared = roundsCleared.reduce((t, x) => t + x, 0) / n;
+  const clearedVar = roundsCleared.reduce((t, x) => t + (x - meanCleared) ** 2, 0) / Math.max(1, n - 1);
+  // A winning run's tightest round: the least energy it had left at any round end.
+  const tightest = results.filter((r) => r.won).map((r) => Math.min(...r.rounds.map((rd) => rd.endEnergy)));
   return {
     n,
+    meanRoundsCleared: meanCleared,
+    moneyPerRun: results.reduce((t, r) => t + r.rounds.reduce((u, rd) => u + rd.money, 0), 0) / n,
+    roundsClearedSE: Math.sqrt(clearedVar / n),
+    tightestRound: { median: median(tightest), p10: quantile(tightest, 0.1) },
     winPct: (wins / n) * 100,
     stderr: Math.sqrt((wins / n) * (1 - wins / n) / n) * 100,
     deathsPct: deaths.slice(1).map((d) => (d / n) * 100),
@@ -259,6 +302,7 @@ export function summarize(results) {
       refundLost: mean(cleared, 'refundLost'),
       turnsLeft: mean(cleared, 'turnsLeft'),
       overshoot: mean(cleared, 'overshoot'),
+      money: mean(cleared, 'money'),
     },
   };
 }
@@ -271,6 +315,30 @@ export function runManyRaw(playerName, cfgFactory, n, options) {
 
 export function runMany(playerName, cfgFactory, n, options) {
   return summarize(runManyRaw(playerName, cfgFactory, n, options));
+}
+
+// Searches for the knob where evalAt(knob).winPct is closest to `target`,
+// assuming win rate falls as the knob rises. Doubles `hi` until it brackets
+// the target, then bisects. `reachable` is false if even `lo` is below target.
+export function calibrate(evalAt, { lo, hi, target, tol = 2, iters = 8 }) {
+  const trace = [];
+  const at = (knob) => {
+    const result = evalAt(knob);
+    trace.push({ knob, winPct: result.winPct, stderr: result.stderr });
+    return result;
+  };
+  const rLo = at(lo);
+  let rHi = at(hi);
+  while (rHi.winPct > target && hi < 1e6) { hi = hi * 2 || 1; rHi = at(hi); }
+  let best = Math.abs(rLo.winPct - target) <= Math.abs(rHi.winPct - target) ? { knob: lo, result: rLo } : { knob: hi, result: rHi };
+  let a = lo, b = hi;
+  for (let i = 0; i < iters && Math.abs(best.result.winPct - target) >= tol; i++) {
+    const mid = (a + b) / 2;
+    const r = at(mid);
+    if (Math.abs(r.winPct - target) < Math.abs(best.result.winPct - target)) best = { knob: mid, result: r };
+    if (r.winPct > target) a = mid; else b = mid;
+  }
+  return { ...best, trace, reachable: rLo.winPct >= target };
 }
 
 // This process's share of `n` total runs, from SHARD (0-based) / SHARDS env vars.
