@@ -1,0 +1,33 @@
+.charges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0 1.5rem 0.75rem;
+}
+
+.charge {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border-radius: 0.4rem;
+  background: transparent;
+  color: var(--gold);
+  border: 1px solid var(--border);
+  transition: border-color 0.15s;
+}
+
+.charge:not(:disabled):hover {
+  border-color: var(--gold);
+}
+
+.charge:disabled {
+  cursor: default;
+  color: var(--text-dim);
+  opacity: 0.6;
+}
+
+.charge:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

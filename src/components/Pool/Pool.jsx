@@ -8,7 +8,10 @@ function glowShadow(colors) {
 
 // previews (id -> product) and glows (id -> colors) are optional overlays used
 // by the playtest settings; onHover reports the hovered or focused open tile.
+// targetable (tile -> bool), when set, means an item is choosing a tile: only
+// matching tiles (used or not) can be clicked.
 export default function Pool({
+  label,
   pool,
   selectedId,
   onSelect,
@@ -16,15 +19,19 @@ export default function Pool({
   onHover,
   previews,
   glows,
+  targetable,
 }) {
   return (
     <div className={styles.wrapper}>
+      {label && <span className={styles.label}>{label}</span>}
       <div className={styles.grid}>
         {pool.map((item) => {
           const preview = previews?.[item.id];
           const glow = glows?.[item.id];
+          const canTarget = targetable ? targetable(item) : false;
+          const disabled = targetable ? !canTarget : item.used;
           const hoverHandlers =
-            onHover && !item.used
+            onHover && !item.used && !targetable
               ? {
                   onMouseEnter: () => onHover(item.id),
                   onMouseLeave: () => onHover(null),
@@ -38,10 +45,12 @@ export default function Pool({
               key={item.id}
               className={`${styles.cell} ${item.used ? styles.used : ''} ${
                 selectedId === item.id ? styles.selected : ''
-              } ${awaitingSelection && !item.used && selectedId !== item.id ? styles.awaiting : ''}`}
-              disabled={item.used}
+              } ${awaitingSelection && !item.used && selectedId !== item.id ? styles.awaiting : ''} ${
+                canTarget ? styles.targetable : ''
+              }`}
+              disabled={disabled}
               onClick={() => onSelect(item.id)}
-              style={glow ? { boxShadow: glowShadow(glow) } : undefined}
+              style={glow && !targetable ? { boxShadow: glowShadow(glow) } : undefined}
               {...hoverHandlers}
             >
               {item.value}

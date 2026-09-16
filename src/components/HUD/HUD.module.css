@@ -20,3 +20,10 @@
   letter-spacing: 0.08em;
   color: var(--text-dim);
 }
+
+.money {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--success);
+  font-variant-numeric: tabular-nums;
+}

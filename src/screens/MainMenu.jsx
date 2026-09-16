@@ -7,6 +7,7 @@ import SettingsToggles from '../components/SettingsToggles/SettingsToggles';
 import styles from './MainMenu.module.css';
 
 export default function MainMenu() {
+  const startRoguelike = useGameStore((s) => s.startRoguelike);
   const startRun = useGameStore((s) => s.startRun);
   const startClassic = useGameStore((s) => s.startClassic);
   const [showHowTo, setShowHowTo] = useState(false);
@@ -22,12 +23,15 @@ export default function MainMenu() {
       <h1 className={styles.title}>HiLo</h1>
       <p className={styles.description}>
         Pick two numbers and multiply them. The last two digits score points
-        — but the leading digits cost energy. Clear {RUN_ROUNDS} rounds on a
-        single energy supply!
+        — but the leading digits cost energy. Clear {RUN_ROUNDS} rounds,
+        building up upgrades, items and relics along the way!
       </p>
       <div className={styles.buttons}>
-        <button className={styles.playBtn} onClick={startRun}>
+        <button className={styles.playBtn} onClick={startRoguelike}>
           Start Run
+        </button>
+        <button className={styles.secondaryBtn} onClick={startRun}>
+          Arcade
         </button>
         <button className={styles.secondaryBtn} onClick={startClassic}>
           Endless Classic
@@ -50,7 +54,7 @@ export default function MainMenu() {
         </section>
       )}
 
-      {showHowTo && <HowToPlay onClose={closeHowTo} onStartRun={startRun} />}
+      {showHowTo && <HowToPlay onClose={closeHowTo} onStartRun={startRoguelike} />}
     </div>
   );
 }
