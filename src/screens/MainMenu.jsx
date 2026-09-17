@@ -10,6 +10,7 @@ export default function MainMenu() {
   const startRoguelike = useGameStore((s) => s.startRoguelike);
   const startRun = useGameStore((s) => s.startRun);
   const startClassic = useGameStore((s) => s.startClassic);
+  const startPractice = useGameStore((s) => s.startPractice);
   const [showHowTo, setShowHowTo] = useState(false);
   const howToRef = useRef(null);
 
@@ -35,6 +36,9 @@ export default function MainMenu() {
         </button>
         <button className={styles.secondaryBtn} onClick={startClassic}>
           Endless Classic
+        </button>
+        <button className={styles.secondaryBtn} onClick={startPractice}>
+          Practice
         </button>
         <button
           ref={howToRef}

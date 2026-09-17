@@ -3,11 +3,12 @@ import { persist } from 'zustand/middleware';
 import useGameStore from './useGameStore';
 
 // Playtest settings are always available under `npm run dev`, and in any build
-// during a roguelike run, where they're offered to playtesters.
+// during a roguelike run (offered to playtesters) or in practice, where
+// learning the patterns is the point.
 export const SETTINGS_ENABLED = import.meta.env.DEV;
 
 export function settingsAvailable(mode) {
-  return SETTINGS_ENABLED || mode === 'roguelike';
+  return SETTINGS_ENABLED || mode === 'roguelike' || mode === 'practice';
 }
 
 const useSettingsStore = create(

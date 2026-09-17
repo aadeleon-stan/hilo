@@ -11,6 +11,7 @@ import {
   getBestPlayBonus,
 } from './gameLogic';
 import { MODES } from './modes';
+import { PRACTICE_DEFAULT_MAX_ENERGY, PRACTICE_DEFAULT_TARGET } from './practice';
 import {
   MONEY_PER_OPTIMAL,
   MONEY_PER_OVERSHOOT,
@@ -64,6 +65,12 @@ function baseState() {
     turn: 0,
     roundBonus: 0,
     turnsAtEnd: 0,
+    // Every play of the current round, oldest first, for end-of-round stats.
+    moveLog: [],
+
+    // Practice only: the player's chosen round settings.
+    practiceTarget: PRACTICE_DEFAULT_TARGET,
+    practiceMaxEnergy: PRACTICE_DEFAULT_MAX_ENERGY,
 
     // Roguelike only.
     runConfig: null,
@@ -89,9 +96,11 @@ function baseState() {
   };
 }
 
-function startMode(mode) {
+// `overrides` lets a mode set its own target and energy (practice's settings,
+// the daily puzzle) and carry extra state through the reset in baseState().
+function startMode(mode, overrides = {}) {
   const rules = MODES[mode];
-  const energy = rules.maxEnergy(1);
+  const energy = overrides.maxEnergy ?? rules.maxEnergy(1);
   return {
     ...baseState(),
     screen: 'game',
@@ -99,9 +108,10 @@ function startMode(mode) {
     energy,
     maxEnergy: energy,
     roundStartEnergy: energy,
-    roundTarget: rules.target(1),
-    poolA: generatePool(),
-    poolB: generatePool(),
+    roundTarget: overrides.roundTarget ?? rules.target(1),
+    poolA: overrides.poolA ?? generatePool(),
+    poolB: overrides.poolB ?? generatePool(),
+    ...(overrides.state ?? {}),
   };
 }
 
@@ -241,6 +251,34 @@ const useGameStore = create(
           set(startMode('classic'));
         },
 
+        // --- Practice ---
+
+        startPractice: () => {
+          cancelConfirm();
+          const { practiceTarget, practiceMaxEnergy } = get();
+          set(
+            startMode('practice', {
+              roundTarget: practiceTarget,
+              maxEnergy: practiceMaxEnergy,
+              state: { practiceTarget, practiceMaxEnergy },
+            })
+          );
+        },
+
+        // A fresh board with the current settings; also how the setters apply,
+        // so a mid-round change can't leave an unreachable target.
+        resetPracticeRound: () => get().startPractice(),
+
+        setPracticeTarget: (target) => {
+          set({ practiceTarget: target });
+          get().startPractice();
+        },
+
+        setPracticeMaxEnergy: (maxEnergy) => {
+          set({ practiceMaxEnergy: maxEnergy });
+          get().startPractice();
+        },
+
         startRoguelike: () => {
           cancelConfirm();
           const runConfig = defaultRunConfig();
@@ -292,7 +330,9 @@ const useGameStore = create(
           const target = state.roundTarget;
 
           // Best plays are judged against the board as it was before this
-          // move, on raw products.
+          // move, on raw products. Energy is paced over the rounds this mode
+          // has left: a single round spends its own budget, a run spreads it.
+          const roundsLeft = rules.rounds ? rules.rounds - state.round + 1 : 1;
           const wasBest =
             rules.optimal &&
             getBestPlays(
@@ -301,7 +341,7 @@ const useGameStore = create(
               state.score,
               target,
               state.energy,
-              RUN_ROUNDS - state.round + 1
+              roundsLeft
             ).has(`${a.id}:${b.id}`);
 
           const result = computeProduct(a.value, b.value);
@@ -341,6 +381,10 @@ const useGameStore = create(
             score: newScore,
             roundSpent: state.roundSpent + cost,
             turnsAtEnd: outcome === 'win' ? turnsRemaining : 0,
+            moveLog: [
+              ...state.moveLog,
+              { a: a.value, b: b.value, product: result.product, cost, points, isBest: wasBest },
+            ],
           };
 
           if (rules.bank) {
@@ -383,8 +427,9 @@ const useGameStore = create(
             return;
           }
 
+          // Only modes that carry energy between rounds refund leftover turns.
           const refund =
-            outcome === 'win'
+            outcome === 'win' && rules.carryEnergy
               ? Math.min(turnsRemaining * RUN_TURN_REFUND, state.maxEnergy - newEnergy - bestBonus)
               : 0;
           const runWon = outcome === 'win' && state.round === RUN_ROUNDS;
@@ -422,6 +467,7 @@ const useGameStore = create(
             roundBonus: 0,
             turnsAtEnd: 0,
             turn: 0,
+            moveLog: [],
           });
         },
 
@@ -450,6 +496,7 @@ const useGameStore = create(
             moneyEarned: 0,
             turnsAtEnd: 0,
             turn: 0,
+            moveLog: [],
             roundOptimals: 0,
             tempEffects: { ...emptyEffects(), extraPick: state.tempEffects.extraPick },
             rerollsLeft: cfg.rerollsPerRound,
