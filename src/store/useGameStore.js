@@ -12,6 +12,8 @@ import {
 } from './gameLogic';
 import { MODES } from './modes';
 import { PRACTICE_DEFAULT_MAX_ENERGY, PRACTICE_DEFAULT_TARGET } from './practice';
+import { dailyBoard, dailyPuzzle, pacificDateKey } from './daily/dailyBoard';
+import useDailyStore from './useDailyStore';
 import {
   MONEY_PER_OPTIMAL,
   MONEY_PER_OVERSHOOT,
@@ -71,6 +73,9 @@ function baseState() {
     // Practice only: the player's chosen round settings.
     practiceTarget: PRACTICE_DEFAULT_TARGET,
     practiceMaxEnergy: PRACTICE_DEFAULT_MAX_ENERGY,
+
+    // Daily only: which day's puzzle is loaded.
+    dailyKey: null,
 
     // Roguelike only.
     runConfig: null,
@@ -269,6 +274,36 @@ const useGameStore = create(
         // so a mid-round change can't leave an unreachable target.
         resetPracticeRound: () => get().startPractice(),
 
+        // --- Daily ---
+
+        // Today's puzzle. One attempt per day: if it's already been played,
+        // this opens on the saved result with the board behind it.
+        startDaily: () => {
+          cancelConfirm();
+          const key = pacificDateKey();
+          const puzzle = dailyPuzzle(key);
+          const played = useDailyStore.getState().results[key] ?? null;
+          set(
+            startMode('daily', {
+              roundTarget: puzzle.target,
+              maxEnergy: puzzle.maxEnergy,
+              ...dailyBoard(puzzle),
+              state: {
+                dailyKey: key,
+                ...(played
+                  ? {
+                      phase: played.won ? 'win' : 'loss',
+                      score: played.score,
+                      energy: played.energyLeft,
+                      turn: played.turnsUsed,
+                      moveLog: played.moveLog ?? [],
+                    }
+                  : {}),
+              },
+            })
+          );
+        },
+
         setPracticeTarget: (target) => {
           set({ practiceTarget: target });
           get().startPractice();
@@ -441,6 +476,21 @@ const useGameStore = create(
             roundBonus: refund,
             phase: runWon ? 'runWon' : outcome || 'selecting',
           });
+
+          // The daily keeps one result per day, recorded the moment the round
+          // ends (leaving early doesn't erase it).
+          if (state.mode === 'daily' && outcome) {
+            const after = get();
+            useDailyStore.getState().record(after.dailyKey, {
+              won: outcome === 'win',
+              score: after.score,
+              target: after.roundTarget,
+              energyLeft: Math.max(after.energy, 0),
+              turnsUsed: after.turn,
+              optimals: after.moveLog.filter((m) => m.isBest).length,
+              moveLog: after.moveLog,
+            });
+          }
         },
 
         nextRound: () => {

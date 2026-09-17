@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import useGameStore from '../store/useGameStore';
 import { RUN_ROUNDS } from '../store/gameLogic';
 import { SETTINGS_ENABLED } from '../store/useSettingsStore';
+import useDailyStore, { dailyResult } from '../store/useDailyStore';
 import HowToPlay from '../components/HowToPlay/HowToPlay';
 import SettingsToggles from '../components/SettingsToggles/SettingsToggles';
 import styles from './MainMenu.module.css';
@@ -11,6 +12,9 @@ export default function MainMenu() {
   const startRun = useGameStore((s) => s.startRun);
   const startClassic = useGameStore((s) => s.startClassic);
   const startPractice = useGameStore((s) => s.startPractice);
+  const startDaily = useGameStore((s) => s.startDaily);
+  const dailyResults = useDailyStore((s) => s.results);
+  const playedToday = Boolean(dailyResult(dailyResults));
   const [showHowTo, setShowHowTo] = useState(false);
   const howToRef = useRef(null);
 
@@ -39,6 +43,9 @@ export default function MainMenu() {
         </button>
         <button className={styles.secondaryBtn} onClick={startPractice}>
           Practice
+        </button>
+        <button className={styles.secondaryBtn} onClick={startDaily}>
+          Daily challenge{playedToday && ' ✓'}
         </button>
         <button
           ref={howToRef}

@@ -1,0 +1,23 @@
+.summary,
+.history {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  font-size: 0.85rem;
+  color: var(--text-dim);
+}
+
+.summary strong,
+.history strong {
+  color: var(--text);
+}
+
+.history {
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border);
+}
+
+.note {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+}

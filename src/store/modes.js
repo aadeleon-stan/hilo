@@ -7,6 +7,7 @@ import {
 } from './gameLogic';
 import { getRoguelikeTarget } from './roguelike/constants';
 import { PRACTICE_DEFAULT_MAX_ENERGY, PRACTICE_DEFAULT_TARGET } from './practice';
+import { DAILY_MAX_ENERGY, DAILY_TARGETS } from './daily/dailyBoard';
 
 // Per-mode rules, so screens and the store don't branch on one mode id.
 //   rounds: round count, or null for endless.
@@ -62,6 +63,23 @@ export const MODES = {
     lossTitle: 'Run Over',
     quitLabel: 'Abandon run',
     quitPrompt: 'Abandon this run? Your progress will be lost.',
+  },
+  // One round a day, the same for every player; its board, target and energy
+  // come from the date (see daily/dailyBoard.js).
+  daily: {
+    name: 'Daily challenge',
+    rounds: 1,
+    target: () => DAILY_TARGETS[0],
+    maxEnergy: () => DAILY_MAX_ENERGY,
+    carryEnergy: false,
+    parHints: false,
+    optimal: true,
+    bank: false,
+    money: false,
+    endScreen: 'daily',
+    lossTitle: 'Out of energy',
+    quitLabel: 'Leave daily',
+    quitPrompt: 'Leave the daily challenge? Your attempt still counts.',
   },
   // A single round for learning the mechanic. Its target and max energy come
   // from the player's practice settings; these are only the defaults.
