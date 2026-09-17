@@ -1,12 +1,14 @@
 import { useRef, useState } from 'react';
 import useGameStore from '../store/useGameStore';
-import { RUN_ROUNDS } from '../store/gameLogic';
+import { MODES } from '../store/modes';
 import { SETTINGS_ENABLED } from '../store/useSettingsStore';
 import useDailyStore, { dailyResult } from '../store/useDailyStore';
 import HowToPlay from '../components/HowToPlay/HowToPlay';
 import SettingsToggles from '../components/SettingsToggles/SettingsToggles';
 import styles from './MainMenu.module.css';
 
+// The menu branches: the modes that stand alone sit on the front page, and
+// the two score-chasing modes share a second page.
 export default function MainMenu() {
   const startRoguelike = useGameStore((s) => s.startRoguelike);
   const startRun = useGameStore((s) => s.startRun);
@@ -14,13 +16,21 @@ export default function MainMenu() {
   const startPractice = useGameStore((s) => s.startPractice);
   const startDaily = useGameStore((s) => s.startDaily);
   const dailyResults = useDailyStore((s) => s.results);
-  const playedToday = Boolean(dailyResult(dailyResults));
+  const [view, setView] = useState('main');
   const [showHowTo, setShowHowTo] = useState(false);
   const howToRef = useRef(null);
+  const scoreAttackRef = useRef(null);
+
+  const playedToday = Boolean(dailyResult(dailyResults));
 
   function closeHowTo() {
     setShowHowTo(false);
     howToRef.current?.focus();
+  }
+
+  function leaveScoreAttack() {
+    setView('main');
+    scoreAttackRef.current?.focus();
   }
 
   return (
@@ -28,33 +38,55 @@ export default function MainMenu() {
       <h1 className={styles.title}>HiLo</h1>
       <p className={styles.description}>
         Pick two numbers and multiply them. The last two digits score points
-        — but the leading digits cost energy. Clear {RUN_ROUNDS} rounds,
-        building up upgrades, items and relics along the way!
+        — but the leading digits cost energy.
       </p>
-      <div className={styles.buttons}>
-        <button className={styles.playBtn} onClick={startRoguelike}>
-          Start Run
-        </button>
-        <button className={styles.secondaryBtn} onClick={startRun}>
-          Arcade
-        </button>
-        <button className={styles.secondaryBtn} onClick={startClassic}>
-          Endless Classic
-        </button>
-        <button className={styles.secondaryBtn} onClick={startPractice}>
-          Practice
-        </button>
-        <button className={styles.secondaryBtn} onClick={startDaily}>
-          Daily challenge{playedToday && ' ✓'}
-        </button>
-        <button
-          ref={howToRef}
-          className={styles.linkBtn}
-          onClick={() => setShowHowTo(true)}
-        >
-          How to play
-        </button>
-      </div>
+
+      {view === 'main' ? (
+        <div className={styles.buttons}>
+          <button className={styles.playBtn} onClick={startRoguelike}>
+            [WIP] Roguelike run
+          </button>
+          <button className={styles.secondaryBtn} onClick={startDaily}>
+            Daily challenge{playedToday && ' ✓'}
+          </button>
+          <button
+            ref={scoreAttackRef}
+            className={styles.secondaryBtn}
+            onClick={() => setView('scoreAttack')}
+          >
+            Score Attack
+          </button>
+          <button className={styles.secondaryBtn} onClick={startPractice}>
+            Practice
+          </button>
+          <button
+            ref={howToRef}
+            className={styles.linkBtn}
+            onClick={() => setShowHowTo(true)}
+          >
+            How to play
+          </button>
+        </div>
+      ) : (
+        <div className={styles.buttons}>
+          <h2 className={styles.groupTitle}>Score Attack</h2>
+          <div className={styles.option}>
+            <button className={styles.secondaryBtn} onClick={startRun}>
+              {MODES.run.name}
+            </button>
+            <p className={styles.blurb}>{MODES.run.blurb}</p>
+          </div>
+          <div className={styles.option}>
+            <button className={styles.secondaryBtn} onClick={startClassic}>
+              {MODES.classic.name}
+            </button>
+            <p className={styles.blurb}>{MODES.classic.blurb}</p>
+          </div>
+          <button className={styles.linkBtn} onClick={leaveScoreAttack}>
+            Back to main menu
+          </button>
+        </div>
+      )}
 
       {SETTINGS_ENABLED && (
         <section className={styles.devSettings} aria-labelledby="dev-settings-title">

@@ -98,6 +98,29 @@
   border-radius: 0.75rem;
 }
 
+/* Score Attack page */
+.groupTitle {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-align: center;
+}
+
+.option {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.blurb {
+  max-width: 18rem;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  text-align: center;
+}
+
 .devTitle {
   margin-bottom: 0.75rem;
   font-size: 0.7rem;

@@ -21,6 +21,7 @@ import { DAILY_MAX_ENERGY, DAILY_TARGETS } from './daily/dailyBoard';
 export const MODES = {
   run: {
     name: 'Arcade',
+    blurb: 'Ten rounds of climbing targets on one energy supply. No upgrades.',
     rounds: RUN_ROUNDS,
     target: getRunTarget,
     maxEnergy: () => RUN_MAX_ENERGY,
@@ -36,6 +37,7 @@ export const MODES = {
   },
   classic: {
     name: 'Endless Classic',
+    blurb: 'Fresh energy every round. Bank your leftovers and see how far you get.',
     rounds: null,
     target: getTarget,
     maxEnergy: (round) => getBudget(round),
@@ -51,6 +53,7 @@ export const MODES = {
   },
   roguelike: {
     name: 'Run',
+    blurb: 'Ten rounds, drafting upgrades, items and relics as you go.',
     rounds: RUN_ROUNDS,
     target: getRoguelikeTarget,
     maxEnergy: (round, runConfig) => runConfig.maxEnergy,
@@ -68,6 +71,7 @@ export const MODES = {
   // come from the date (see daily/dailyBoard.js).
   daily: {
     name: 'Daily challenge',
+    blurb: 'One round a day, the same for everyone. New puzzle at midnight Pacific.',
     rounds: 1,
     target: () => DAILY_TARGETS[0],
     maxEnergy: () => DAILY_MAX_ENERGY,
@@ -85,6 +89,7 @@ export const MODES = {
   // from the player's practice settings; these are only the defaults.
   practice: {
     name: 'Practice',
+    blurb: 'A single round with your own target and energy, plus learning aids.',
     rounds: 1,
     target: () => PRACTICE_DEFAULT_TARGET,
     maxEnergy: () => PRACTICE_DEFAULT_MAX_ENERGY,
