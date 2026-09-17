@@ -1,25 +1,16 @@
-.panel {
+.fields {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  width: min(30rem, 100%);
-  margin: 0 auto;
-  padding: 0.75rem 1rem 1rem;
-  border: 1px dashed var(--border);
-  border-radius: 0.75rem;
-}
-
-.row {
-  display: flex;
-  align-items: flex-end;
-  gap: 0.75rem;
-  flex-wrap: wrap;
 }
 
 .field {
   display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 0.9rem;
+  color: var(--text);
 }
 
 .label {
@@ -31,6 +22,8 @@
 }
 
 .select {
+  flex: 1;
+  max-width: 9rem;
   padding: 0.35rem 0.5rem;
   font-family: inherit;
   font-size: 0.9rem;
@@ -43,9 +36,8 @@
 }
 
 .reset {
-  margin-left: auto;
-  padding: 0.45rem 1rem;
-  font-size: 0.9rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.95rem;
   font-weight: 600;
   border-radius: 0.5rem;
   background: transparent;

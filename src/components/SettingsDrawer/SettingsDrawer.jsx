@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import useGameStore from '../../store/useGameStore';
 import SettingsToggles from '../SettingsToggles/SettingsToggles';
+import PracticePanel from '../PracticePanel/PracticePanel';
 import { SETTINGS_ENABLED, settingsAvailable } from '../../store/useSettingsStore';
 import { MODES } from '../../store/modes';
 import styles from './SettingsDrawer.module.css';
@@ -95,6 +96,13 @@ export default function SettingsDrawer() {
                 </button>
               )}
             </section>
+
+            {mode === 'practice' && (
+              <section className={styles.section}>
+                <h3 className={styles.sectionTitle}>Practice round</h3>
+                <PracticePanel onDone={close} />
+              </section>
+            )}
 
             {settingsAvailable(mode) && (
               <section className={styles.section}>

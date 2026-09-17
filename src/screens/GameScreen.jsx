@@ -16,7 +16,6 @@ import ProductReveal from '../components/ProductReveal/ProductReveal';
 import StatBar from '../components/StatBar/StatBar';
 import Overlay from '../components/Overlay/Overlay';
 import TargetingBanner from '../components/TargetingBanner/TargetingBanner';
-import PracticePanel from '../components/PracticePanel/PracticePanel';
 import PracticeStats from '../components/PracticeStats/PracticeStats';
 import DailyResult from '../components/DailyResult/DailyResult';
 import BoardCharges from '../components/BoardCharges/BoardCharges';
@@ -236,8 +235,6 @@ export default function GameScreen() {
         />
         {rules.bank && <span className={styles.bank}>Bank: {bank.toLocaleString()}</span>}
       </div>
-
-      {mode === 'practice' && <PracticePanel />}
 
       {isRoguelike && (
         <>
