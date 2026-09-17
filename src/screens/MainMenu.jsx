@@ -43,11 +43,11 @@ export default function MainMenu() {
 
       {view === 'main' ? (
         <div className={styles.buttons}>
-          <button className={styles.playBtn} onClick={startRoguelike}>
-            [WIP] Roguelike run
-          </button>
-          <button className={styles.secondaryBtn} onClick={startDaily}>
+          <button className={styles.playBtn} onClick={startDaily}>
             Daily challenge{playedToday && ' ✓'}
+          </button>
+          <button className={styles.secondaryBtn} onClick={startRoguelike}>
+            [WIP] Roguelike run
           </button>
           <button
             ref={scoreAttackRef}

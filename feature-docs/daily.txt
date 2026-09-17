@@ -4,13 +4,13 @@ Let's add another mode to this game. This will be the "Daily" mode, which is a d
 The daily challenge is a single round of the hilo game.
 
 ## Winnable
-The board state and target score must be winnable with skilled play.
+The board state and target score must be winnable with skilled (but not necessarily perfect) play. We don't need to worry too much about balance for MVP -- just start with a mid-level target score (with respect to the roguelike version, knowing that players won't have access to any upgrades) and ensure that the factor pools make the score possible to achieve with a couple turns left over.
 
 ## Static
 The game must be the same for all players during the day; the initial board and target score are selected randomly (conditioned on being winnable) at the start of the day and then static throughout the day.
 
 ## Stats
-We can show players an "Optimal" and "Par" energy bank based on a solver of the daily game. Or, instead of building a solver, we can just track a leaderboard to show what the best player has done so far and the distribution of players' scores (with a mean or median score) so far.
+We can show players a "Best" and "Par" energy bank based on a solver of the daily game. Or, for MVP, instead of building a solver, we can just track a leaderboard to show what the best player has done so far and the distribution of players' scores (with a mean or median score) so far.
 
 ## Sharability
-Give the players a nice modal with an easy image to share about how they performed. Celebrate if they made par; celebrate even more if they are close to optimal.
+[not MVP] Give the players a nice modal with an easy image to share about how they performed. Celebrate if they made par; celebrate even more if they are close to best play.
