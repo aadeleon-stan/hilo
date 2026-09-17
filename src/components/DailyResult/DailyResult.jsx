@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import useGameStore from '../../store/useGameStore';
 import useDailyStore, { bestEnergyLeft, dailyStreak } from '../../store/useDailyStore';
 import Modal from '../Modal/Modal';
@@ -6,7 +7,9 @@ import modalStyles from '../Modal/Modal.module.css';
 import styles from './DailyResult.module.css';
 
 // End of the daily round: today's result, the plays, and how it fits the
-// player's history. One attempt a day, so there's no retry.
+// player's history. One attempt a day, so there's no retry — but the board
+// stays behind this, and "View board" hides it so the leftover factors can be
+// studied.
 export default function DailyResult() {
   const phase = useGameStore((s) => s.phase);
   const moveLog = useGameStore((s) => s.moveLog);
@@ -18,11 +21,20 @@ export default function DailyResult() {
   const dailyKey = useGameStore((s) => s.dailyKey);
   const resetGame = useGameStore((s) => s.resetGame);
   const results = useDailyStore((s) => s.results);
+  const [hidden, setHidden] = useState(false);
 
   const won = phase === 'win';
   const streak = dailyStreak(results);
   const best = bestEnergyLeft(results);
   const optimals = moveLog.filter((m) => m.isBest).length;
+
+  if (hidden) {
+    return (
+      <button className={styles.reopen} onClick={() => setHidden(false)}>
+        Show results
+      </button>
+    );
+  }
 
   return (
     <Modal
@@ -60,6 +72,9 @@ export default function DailyResult() {
       <p className={styles.note}>A new challenge arrives at midnight Pacific.</p>
 
       <div className={modalStyles.actions}>
+        <button className={modalStyles.secondary} onClick={() => setHidden(true)}>
+          View board
+        </button>
         <button className={modalStyles.primary} onClick={resetGame}>
           Leave
         </button>

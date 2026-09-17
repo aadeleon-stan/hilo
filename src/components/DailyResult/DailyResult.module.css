@@ -21,3 +21,29 @@
   font-size: 0.75rem;
   color: var(--text-dim);
 }
+
+/* Shown in place of the modal while the player studies the finished board. */
+.reopen {
+  position: fixed;
+  left: 50%;
+  bottom: 1rem;
+  transform: translateX(-50%);
+  z-index: 100;
+  padding: 0.55rem 1.25rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  background: var(--surface);
+  color: var(--accent);
+  border: 1px solid var(--border);
+  transition: border-color 0.15s;
+}
+
+.reopen:hover {
+  border-color: var(--accent);
+}
+
+.reopen:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

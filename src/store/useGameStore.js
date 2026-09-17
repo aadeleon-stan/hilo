@@ -297,6 +297,8 @@ const useGameStore = create(
                       energy: played.energyLeft,
                       turn: played.turnsUsed,
                       moveLog: played.moveLog ?? [],
+                      // Restore the finished board, not a fresh one.
+                      ...(played.poolA ? { poolA: played.poolA, poolB: played.poolB } : {}),
                     }
                   : {}),
               },
@@ -489,6 +491,10 @@ const useGameStore = create(
               turnsUsed: after.turn,
               optimals: after.moveLog.filter((m) => m.isBest).length,
               moveLog: after.moveLog,
+              // The board as it was left, so reopening the day can show which
+              // factors went unused.
+              poolA: after.poolA,
+              poolB: after.poolB,
             });
           }
         },
