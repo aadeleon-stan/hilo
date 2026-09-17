@@ -54,7 +54,7 @@ export default function MainMenu() {
             className={styles.secondaryBtn}
             onClick={() => setView('scoreAttack')}
           >
-            Score Attack
+            Score Attack modes
           </button>
           <button className={styles.secondaryBtn} onClick={startPractice}>
             Practice
@@ -69,19 +69,16 @@ export default function MainMenu() {
         </div>
       ) : (
         <div className={styles.buttons}>
-          <h2 className={styles.groupTitle}>Score Attack</h2>
-          <div className={styles.option}>
-            <button className={styles.secondaryBtn} onClick={startRun}>
-              {MODES.run.name}
+          <h2 className={styles.groupTitle}>Score Attack modes</h2>
+          {[
+            { mode: MODES.run, start: startRun },
+            { mode: MODES.classic, start: startClassic },
+          ].map(({ mode, start }) => (
+            <button key={mode.name} className={styles.modeCard} onClick={start}>
+              <span className={styles.modeName}>{mode.name}</span>
+              <span className={styles.modeBlurb}>{mode.blurb}</span>
             </button>
-            <p className={styles.blurb}>{MODES.run.blurb}</p>
-          </div>
-          <div className={styles.option}>
-            <button className={styles.secondaryBtn} onClick={startClassic}>
-              {MODES.classic.name}
-            </button>
-            <p className={styles.blurb}>{MODES.classic.blurb}</p>
-          </div>
+          ))}
           <button className={styles.linkBtn} onClick={leaveScoreAttack}>
             Back to main menu
           </button>
