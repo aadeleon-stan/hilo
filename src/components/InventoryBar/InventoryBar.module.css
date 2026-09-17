@@ -1,0 +1,103 @@
+.bar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  width: 100%;
+  padding: 0 1.5rem 1.25rem;
+}
+
+.bar.compact {
+  padding: 0.75rem 0 0;
+  border-top: 1px solid var(--border);
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.25rem 0.75rem;
+}
+
+.title {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.effects {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--gold);
+}
+
+.slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  list-style: none;
+}
+
+.slot {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.slot.active {
+  border-color: var(--gold);
+}
+
+.use,
+.discard {
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.use {
+  padding: 0.35rem 0.6rem;
+  transition: background 0.15s, color 0.15s;
+}
+
+.use:not(:disabled):hover {
+  background: var(--accent);
+  color: var(--bg);
+}
+
+.use:disabled {
+  cursor: default;
+  color: var(--text-dim);
+}
+
+.discard {
+  padding: 0.35rem 0.5rem;
+  color: var(--text-dim);
+  border-left: 1px solid var(--border);
+  transition: color 0.15s;
+}
+
+.discard:hover {
+  color: var(--danger);
+}
+
+.empty {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+}
+
+.notice {
+  font-size: 0.8rem;
+  color: var(--danger);
+}
+
+.use:focus-visible,
+.discard:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}

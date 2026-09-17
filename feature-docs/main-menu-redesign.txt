@@ -1,0 +1,14 @@
+Let’s reorganize our main menu to account for all the new game modes.
+
+# Menu options
+The main menu should branch into the following modes (button text in parens):
+1. Daily modes (”Daily challenge”)
+2. Roguelike mode (”[WIP] Roguelike run”)
+3. Arcade and endless classic modes (TBD)
+4. Practice (”Practice”)
+5. How to play modal (”How to play”)
+
+# Button updates
+We need a good button name for the grouping of Arcade mode and Endless Classic mode. This button should take the player to a new menu with options for "Arcade," "Endless Classic," and "Back to main menu." A nice-to-have would be brief info about each game mode, possibly displayed on hover.
+
+We also need to update the “How to play” modal to remove specific references to different modes (like the explicit reference to endless classic). Instead we can say something like “In game modes with multiple rounds, …” to discuss info specific to roguelike, arcade, and endless runs. This should also probably move to after the info about the “Optimal” bonuses, and we should probably remove the description of “par” stats.

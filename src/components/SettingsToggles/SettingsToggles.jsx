@@ -1,4 +1,5 @@
-import useSettingsStore, { SETTINGS_ENABLED } from '../../store/useSettingsStore';
+import useSettingsStore, { settingsAvailable } from '../../store/useSettingsStore';
+import useGameStore from '../../store/useGameStore';
 import styles from './SettingsToggles.module.css';
 
 // Playtest setting checkboxes, shared by the main menu and the in-game drawer.
@@ -7,8 +8,9 @@ export default function SettingsToggles() {
   const showOptimal = useSettingsStore((s) => s.showOptimal);
   const toggleEasyMode = useSettingsStore((s) => s.toggleEasyMode);
   const toggleShowOptimal = useSettingsStore((s) => s.toggleShowOptimal);
+  const mode = useGameStore((s) => s.mode);
 
-  if (!SETTINGS_ENABLED) return null;
+  if (!settingsAvailable(mode)) return null;
 
   return (
     <div className={styles.toggles}>
@@ -23,7 +25,7 @@ export default function SettingsToggles() {
         <input type="checkbox" checked={showOptimal} onChange={toggleShowOptimal} />
         <span>
           Optimal indicators
-          <span className={styles.note}>Glow around best plays (Run mode only)</span>
+          <span className={styles.note}>Glow around best plays (not in Classic)</span>
         </span>
       </label>
     </div>

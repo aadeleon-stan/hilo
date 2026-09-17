@@ -92,6 +92,21 @@
   color: var(--danger);
 }
 
+
+.moneyEarned {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--success);
+  animation: bonusPop 0.4s ease 0.2s both;
+}
+
+.moneyTotal {
+  margin-top: -0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--success);
+}
+
 .total {
   font-size: 1.5rem;
   font-weight: 700;

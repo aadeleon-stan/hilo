@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react';
 import useGameStore from '../../store/useGameStore';
 import SettingsToggles from '../SettingsToggles/SettingsToggles';
-import { SETTINGS_ENABLED } from '../../store/useSettingsStore';
+import PracticePanel from '../PracticePanel/PracticePanel';
+import { SETTINGS_ENABLED, settingsAvailable } from '../../store/useSettingsStore';
+import { MODES } from '../../store/modes';
 import styles from './SettingsDrawer.module.css';
 
 // Gear button that opens the in-game menu drawer: abandoning the current game
-// (all builds, with a confirm step) and the playtest settings (dev builds only).
+// (all builds, with a confirm step) and the playtest settings (dev builds, and
+// roguelike runs in any build).
 export default function SettingsDrawer() {
   const mode = useGameStore((s) => s.mode);
   const resetGame = useGameStore((s) => s.resetGame);
@@ -29,11 +32,7 @@ export default function SettingsDrawer() {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [open]);
 
-  const isRun = mode === 'run';
-  const quitLabel = isRun ? 'Abandon run' : 'Quit to menu';
-  const quitPrompt = isRun
-    ? 'Abandon this run? Your progress will be lost.'
-    : 'Quit to the main menu? Your progress will be lost.';
+  const { quitLabel, quitPrompt } = MODES[mode];
 
   return (
     <>
@@ -98,9 +97,18 @@ export default function SettingsDrawer() {
               )}
             </section>
 
-            {SETTINGS_ENABLED && (
+            {mode === 'practice' && (
               <section className={styles.section}>
-                <h3 className={styles.sectionTitle}>Dev settings</h3>
+                <h3 className={styles.sectionTitle}>Practice round</h3>
+                <PracticePanel onDone={close} />
+              </section>
+            )}
+
+            {settingsAvailable(mode) && (
+              <section className={styles.section}>
+                <h3 className={styles.sectionTitle}>
+                  {SETTINGS_ENABLED ? 'Dev settings' : 'Playtest aids'}
+                </h3>
                 <SettingsToggles />
               </section>
             )}

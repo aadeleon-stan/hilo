@@ -1,0 +1,33 @@
+Let's add a roguelike game mode. This is an initial version for playtesting, so we are not overly concerned about perfect balance yet.
+
+# Main Menu
+We need to edit the main menu. The "Start run" button should launch the new roguelike mode; the old mode should be accessible through a new button labeled "Arcade" which comes before Endless Classic.
+
+# Referencing roguelike-mvp.md
+An agent developed a proposal in roguelike-mvp.md. This proposal went far beyond the scope of its original task, but certain sections are actually still useful. Specifically, Sections 1 (Run shape), 3 (Money), and 5 (Rules worth keeping as they are). I will not rewrite the content from those sections here, because it would be redundant; you may refer to those sections specifically for guidance.
+
+# Upgrades, Items, and Relics
+The output from the actual planning task is captured in roguelike-mvp-set.md. Here are some notes to consider in relation to that file.
+
+## Upgrades
+Your suggested list in roguelike-mvp-set.md is way too small. A player is bound to see every possible upgrade since they are offered three upgrades nine times. Some easy ways to help:
+1. As originally suggested, all decade upgrades should be limited to one pool (player can choose which to apply to). So getting a "Unlock 10s decade" upgrade can be beneficial twice.
+2. As originally suggested, the ones-digit removals should come in pairs and be tied to a specific pool. Then "Remove 5 from Pool A and 9 from Pool B" is a different upgrade than "Remove 9 from Pool A and 5 from Pool B."
+3. The "+X to Y" upgrades can be broken into more incremental pieces, e.g., instead of a single "+40 max energy" you can offer "+10 max energy" multiple times (or "+1 to optimal bonus cap" or "+10% round-end refund").
+4. "Guarantee a [decade] value in each pool" should only apply to one pool (similar to point 1) and should be available multiple times for multiple decades. So it shouldn't just be for 10-19 but probably also 20-29 and maybe even 30-39, and we should allow the player to get up to, say, 4 fixed in the same pool.
+
+A few of the upgrades you've been testing don't really make sense:
+- "Pool A limited to 10-49" is a silly upgrade for MVP -- just force the player to do it themselves by collecting the correct decades. There may be room for it as a stronger upgrade variant later on, but for the initial playtest version of the game it feels arbitrary and redundant.
+- "+1 number per pool" requires new UI. Forget it.
+- "+1 reroll of the board's largest number" limits skill expression. The player should be free to reroll any number.
+- "Keep smallest number into the next round" seems silly because if you get an 11 you can just keep rolling it over. Forget it.
+
+## Items
+Regarding items, we also have way too few. In three shops with three offers each, we will repeat items very quickly, so suggest some new items.
+
+Also, your issue with the "Revive a factor" item seems like nonsense in light of the suggestion to let the player choose and remove a different (live) number from the same pool, which would keep the turn count stable.
+
+Finally, why does the "shopping app" issue matter? We're not balancing for it, we're just building a feature to playtest.
+
+## Relics
+I don't see how the digit-swap relic or inventory slots depend on economy. And again, we're not balancing, it's just a feature to playtest.

@@ -20,3 +20,19 @@
   letter-spacing: 0.08em;
   color: var(--text-dim);
 }
+
+/* Which mode you're in, for modes with a single round. */
+.mode {
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+}
+
+.money {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--success);
+  font-variant-numeric: tabular-nums;
+}

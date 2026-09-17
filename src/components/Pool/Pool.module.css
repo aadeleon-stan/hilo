@@ -72,3 +72,38 @@
   0%, 100% { border-color: var(--border); }
   50% { border-color: var(--accent); }
 }
+
+.label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* An item is choosing a tile: matching tiles pulse gold. */
+.cell.targetable {
+  cursor: pointer;
+  border-color: var(--gold);
+  animation: targetPulse 1.2s ease-in-out infinite;
+}
+
+.cell.used.targetable {
+  opacity: 0.7;
+}
+
+.cell:disabled:not(.used) {
+  cursor: default;
+  opacity: 0.5;
+}
+
+@keyframes targetPulse {
+  0%, 100% { box-shadow: 0 0 0 0 transparent; }
+  50% { box-shadow: 0 0 10px rgba(251, 191, 36, 0.5); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cell.targetable {
+    animation: none;
+  }
+}
