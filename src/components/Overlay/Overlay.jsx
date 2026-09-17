@@ -30,9 +30,11 @@ export default function Overlay() {
   const continueAfterWin = useGameStore((s) => s.continueAfterWin);
   const resetGame = useGameStore((s) => s.resetGame);
 
-  if (phase !== 'win' && phase !== 'loss' && phase !== 'runWon') return null;
-
   const rules = MODES[mode];
+  if (phase !== 'win' && phase !== 'loss' && phase !== 'runWon') return null;
+  // Modes with their own end screen (practice stats, the daily result) render
+  // it from GameScreen instead.
+  if (rules.endScreen !== 'overlay') return null;
   const isWin = phase !== 'loss';
   const net = roundStartEnergy - energy;
   const netPar = rules.parHints ? getRunNetPar(round) : null;

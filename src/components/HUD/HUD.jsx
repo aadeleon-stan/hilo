@@ -18,9 +18,14 @@ export default function HUD() {
 
   return (
     <div className={styles.hud}>
-      <span className={styles.info}>
-        Round {round}{rules.rounds && ` / ${rules.rounds}`}
-      </span>
+      {/* Single-round modes name themselves instead of counting to one. */}
+      {rules.rounds === 1 ? (
+        <span className={styles.mode}>{rules.name}</span>
+      ) : (
+        <span className={styles.info}>
+          Round {round}{rules.rounds && ` / ${rules.rounds}`}
+        </span>
+      )}
       <div className={styles.right}>
         {rules.money && (
           <span className={styles.money} aria-label={`Money: ${money}`}>

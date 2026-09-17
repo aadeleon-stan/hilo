@@ -1,0 +1,13 @@
+Let’s add a practice mode to allow players to practice the main gameplay mechanic and learn multiplication tricks.
+
+This mode gives the player a single round with default starting energy and target score.
+
+The player should have access to the following practice options at any time:
+1. Leave practice (back to main menu)
+2. Reset round (randomizes board and resets energy and score)
+3. Easy mode toggle (to help players learn multiplication patterns)
+4. Optimal indicators toggle (to help players discover optimal patterns)
+5. Target score setter (with presets for Rounds 1-10 of the roguelike mode)
+6. Max energy setter (with preset for default)
+
+"Winning" a practice round should just allow the player to view their stats, showing their plays in order and highlighting their optimal plays. They should have an option to toggle between the stats view/modal and looking at the remaining board, and they should have a button to "Reset round" (i.e., start a new practice round) and a button to "Leave practice."

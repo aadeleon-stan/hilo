@@ -16,6 +16,8 @@ import ProductReveal from '../components/ProductReveal/ProductReveal';
 import StatBar from '../components/StatBar/StatBar';
 import Overlay from '../components/Overlay/Overlay';
 import TargetingBanner from '../components/TargetingBanner/TargetingBanner';
+import PracticeStats from '../components/PracticeStats/PracticeStats';
+import DailyResult from '../components/DailyResult/DailyResult';
 import BoardCharges from '../components/BoardCharges/BoardCharges';
 import InventoryBar from '../components/InventoryBar/InventoryBar';
 import DraftModal from '../components/DraftModal/DraftModal';
@@ -242,6 +244,12 @@ export default function GameScreen() {
           {phase === 'shop' && <ShopModal />}
         </>
       )}
+
+      {rules.endScreen === 'stats' && (phase === 'win' || phase === 'loss') && (
+        <PracticeStats />
+      )}
+
+      {rules.endScreen === 'daily' && (phase === 'win' || phase === 'loss') && <DailyResult />}
 
       <Overlay />
     </div>

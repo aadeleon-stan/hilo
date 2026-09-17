@@ -1,24 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
 import ProductReveal from '../ProductReveal/ProductReveal';
 import StatBar from '../StatBar/StatBar';
-import {
-  computeProduct,
-  getBestPlayBonus,
-  getRunTarget,
-  RUN_ROUNDS,
-  RUN_MAX_ENERGY,
-  RUN_TURN_REFUND,
-} from '../../store/gameLogic';
+import { computeProduct, getBestPlayBonus, getRunTarget, RUN_MAX_ENERGY } from '../../store/gameLogic';
 import styles from './HowToPlay.module.css';
 
-const PAGE_COUNT = 5;
+const PAGE_COUNT = 4;
 const demo = computeProduct(47, 68);
 // A cheap, high-scoring move (−3 energy, +99 pts) that's a best play on about
 // 92% of simulated mid-round boards containing it.
 const optimalDemo = computeProduct(19, 21);
 // Pages with a looping demo. The demos finish in ~1.6s; this holds the result
 // for about two seconds before replaying.
-const DEMO_PAGES = [0, 1, 3];
+const DEMO_PAGES = [0, 1, 2];
 const DEMO_LOOP_MS = 3500;
 // Mid-round state the page 2 demo applies the example move to.
 const DEMO_SCORE_BEFORE = 120;
@@ -102,23 +95,6 @@ export default function HowToPlay({ onClose, onStartRun }) {
       ),
     },
     {
-      title: 'The run',
-      body: (
-        <>
-          <p>
-            A full run is <strong>{RUN_ROUNDS} rounds</strong> on one supply of{' '}
-            <strong>{RUN_MAX_ENERGY} energy</strong>. Energy carries over between
-            rounds, and the targets climb as you go.
-          </p>
-          <p>
-            Finish early to save energy: each turn you have left when you clear a
-            round gives back <strong>{RUN_TURN_REFUND}</strong> energy, up to your
-            max.
-          </p>
-        </>
-      ),
-    },
-    {
       title: 'Play smart',
       body: (
         <>
@@ -134,21 +110,22 @@ export default function HowToPlay({ onClose, onStartRun }) {
             label={`Optimal! +${getBestPlayBonus(optimalDemo.highWord)} energy`}
             optimal
           />
-          <p>
-            The par hint compares your energy spent with a strong player&apos;s. After
-            each round, you&apos;ll see your net energy against par.
-          </p>
         </>
       ),
     },
     {
-      title: 'Endless Classic',
+      title: 'Going the distance',
       body: (
         <>
-          <p>Prefer no finish line? Endless Classic keeps going until you lose.</p>
           <p>
-            Energy resets every round, and your leftover energy plus a bonus for
-            unused turns goes into your bank.
+            In game modes with multiple rounds, the targets climb and your energy
+            carries over from round to round, so every point of energy you save
+            early is energy you still have later.
+          </p>
+          <p>
+            Clear a round with turns to spare and you get some of that energy
+            back. Some modes hand out upgrades between rounds; others bank your
+            leftovers as score and keep going until you run dry.
           </p>
         </>
       ),
@@ -222,7 +199,7 @@ export default function HowToPlay({ onClose, onStartRun }) {
                 Close
               </button>
               <button ref={primaryRef} className={styles.primary} onClick={onStartRun}>
-                Start Run
+                Start a run
               </button>
             </>
           ) : (
