@@ -7,8 +7,8 @@ import HowToPlay from '../components/HowToPlay/HowToPlay';
 import SettingsToggles from '../components/SettingsToggles/SettingsToggles';
 import styles from './MainMenu.module.css';
 
-// The menu branches: the modes that stand alone sit on the front page, and
-// the two score-chasing modes share a second page.
+// The menu branches: the daily challenge leads, and the longer-form modes
+// share a second page.
 export default function MainMenu() {
   const startRoguelike = useGameStore((s) => s.startRoguelike);
   const startRun = useGameStore((s) => s.startRun);
@@ -19,18 +19,24 @@ export default function MainMenu() {
   const [view, setView] = useState('main');
   const [showHowTo, setShowHowTo] = useState(false);
   const howToRef = useRef(null);
-  const scoreAttackRef = useRef(null);
+  const otherModesRef = useRef(null);
 
   const playedToday = Boolean(dailyResult(dailyResults));
+
+  const otherModes = [
+    { label: '[WIP] Roguelike run', mode: MODES.roguelike, start: startRoguelike },
+    { label: MODES.run.name, mode: MODES.run, start: startRun },
+    { label: MODES.classic.name, mode: MODES.classic, start: startClassic },
+  ];
 
   function closeHowTo() {
     setShowHowTo(false);
     howToRef.current?.focus();
   }
 
-  function leaveScoreAttack() {
+  function leaveOtherModes() {
     setView('main');
-    scoreAttackRef.current?.focus();
+    otherModesRef.current?.focus();
   }
 
   return (
@@ -46,15 +52,12 @@ export default function MainMenu() {
           <button className={styles.playBtn} onClick={startDaily}>
             Daily challenge{playedToday && ' ✓'}
           </button>
-          <button className={styles.secondaryBtn} onClick={startRoguelike}>
-            [WIP] Roguelike run
-          </button>
           <button
-            ref={scoreAttackRef}
+            ref={otherModesRef}
             className={styles.secondaryBtn}
-            onClick={() => setView('scoreAttack')}
+            onClick={() => setView('otherModes')}
           >
-            Score Attack modes
+            Other game modes
           </button>
           <button className={styles.secondaryBtn} onClick={startPractice}>
             Practice
@@ -69,17 +72,14 @@ export default function MainMenu() {
         </div>
       ) : (
         <div className={styles.buttons}>
-          <h2 className={styles.groupTitle}>Score Attack modes</h2>
-          {[
-            { mode: MODES.run, start: startRun },
-            { mode: MODES.classic, start: startClassic },
-          ].map(({ mode, start }) => (
-            <button key={mode.name} className={styles.modeCard} onClick={start}>
-              <span className={styles.modeName}>{mode.name}</span>
+          <h2 className={styles.groupTitle}>Other game modes</h2>
+          {otherModes.map(({ label, mode, start }) => (
+            <button key={label} className={styles.modeCard} onClick={start}>
+              <span className={styles.modeName}>{label}</span>
               <span className={styles.modeBlurb}>{mode.blurb}</span>
             </button>
           ))}
-          <button className={styles.linkBtn} onClick={leaveScoreAttack}>
+          <button className={styles.linkBtn} onClick={leaveOtherModes}>
             Back to main menu
           </button>
         </div>
