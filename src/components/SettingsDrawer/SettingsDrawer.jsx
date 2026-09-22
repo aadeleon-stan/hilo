@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import useGameStore from '../../store/useGameStore';
 import SettingsToggles from '../SettingsToggles/SettingsToggles';
 import PracticePanel from '../PracticePanel/PracticePanel';
+import ContactModal from '../ContactModal/ContactModal';
 import { SETTINGS_ENABLED, settingsAvailable } from '../../store/useSettingsStore';
 import { MODES } from '../../store/modes';
 import styles from './SettingsDrawer.module.css';
@@ -14,6 +15,15 @@ export default function SettingsDrawer() {
   const resetGame = useGameStore((s) => s.resetGame);
   const [open, setOpen] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [showContact, setShowContact] = useState(false);
+
+  // The drawer sits above the modal layer, so step out of the way rather than
+  // stacking the contact dialog underneath it.
+  function openContact() {
+    setOpen(false);
+    setConfirming(false);
+    setShowContact(true);
+  }
 
   function close() {
     setOpen(false);
@@ -112,9 +122,18 @@ export default function SettingsDrawer() {
                 <SettingsToggles />
               </section>
             )}
+
+            <section className={styles.section}>
+              <h3 className={styles.sectionTitle}>Feedback</h3>
+              <button className={styles.cancel} onClick={openContact}>
+                Contact me
+              </button>
+            </section>
           </aside>
         </div>
       )}
+
+      {showContact && <ContactModal onClose={() => setShowContact(false)} />}
     </>
   );
 }

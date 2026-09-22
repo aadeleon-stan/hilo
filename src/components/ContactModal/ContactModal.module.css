@@ -1,0 +1,26 @@
+.address {
+  padding: 0.6rem 0.75rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.95rem;
+  color: var(--text);
+  text-align: center;
+  word-break: break-all;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  user-select: all;
+}
+
+/* The mail link wears the modal's primary button styles, which assume a
+   button element. */
+.mailLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+
+.mailLink:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

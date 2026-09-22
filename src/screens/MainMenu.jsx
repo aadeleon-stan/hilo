@@ -1,9 +1,11 @@
 import { useRef, useState } from 'react';
 import useGameStore from '../store/useGameStore';
 import { MODES } from '../store/modes';
+import { AUTHOR } from '../config';
 import { SETTINGS_ENABLED } from '../store/useSettingsStore';
 import useDailyStore, { dailyResult } from '../store/useDailyStore';
 import HowToPlay from '../components/HowToPlay/HowToPlay';
+import ContactModal from '../components/ContactModal/ContactModal';
 import SettingsToggles from '../components/SettingsToggles/SettingsToggles';
 import styles from './MainMenu.module.css';
 
@@ -18,8 +20,10 @@ export default function MainMenu() {
   const dailyResults = useDailyStore((s) => s.results);
   const [view, setView] = useState('main');
   const [showHowTo, setShowHowTo] = useState(false);
+  const [showContact, setShowContact] = useState(false);
   const howToRef = useRef(null);
   const otherModesRef = useRef(null);
+  const contactRef = useRef(null);
 
   const playedToday = Boolean(dailyResult(dailyResults));
 
@@ -32,6 +36,11 @@ export default function MainMenu() {
   function closeHowTo() {
     setShowHowTo(false);
     howToRef.current?.focus();
+  }
+
+  function closeContact() {
+    setShowContact(false);
+    contactRef.current?.focus();
   }
 
   function leaveOtherModes() {
@@ -94,7 +103,20 @@ export default function MainMenu() {
         </section>
       )}
 
+      <footer className={styles.footer}>
+        <span>A game by {AUTHOR}</span>
+        <span aria-hidden="true">·</span>
+        <button
+          ref={contactRef}
+          className={styles.footerLink}
+          onClick={() => setShowContact(true)}
+        >
+          Contact
+        </button>
+      </footer>
+
       {showHowTo && <HowToPlay onClose={closeHowTo} onStartRun={startRoguelike} />}
+      {showContact && <ContactModal onClose={closeContact} />}
     </div>
   );
 }
