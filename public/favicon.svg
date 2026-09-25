@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <title>HiLo</title>
+  <rect width="512" height="512" rx="61" fill="#0f172a"/>
+  <path fill="#fbbf24" d="M224 64a160 160 0 0 0 0 320z"/>
+  <path fill="#38bdf8" d="M288 128a160 160 0 0 1 0 320z"/>
+</svg>
