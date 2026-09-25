@@ -1,0 +1,14 @@
+Let's create a simple arithmetic game, in a similar style to the ../remainders/ project.
+
+Instead of using division as the operator, we'll use multiplication. The player will multiply two two-digit numbers, and we will split the output into the "high word" (product / 100) and the "low word" (product % 100).
+
+The basic gameplay loop is as follows: in each round, we set up the game by giving the player two pools of nine two-digit numbers each (can be shown in a 3x3 grid). The round continues in turns until the player either meets a target score or runs out of numbers to select from.
+
+On the player turn:
+1. Select a factor from each of the two pools.
+2. Score points towards the round target equivalent to the low word.
+3. Earn money for high word.
+
+If the player wins the round by meeting or exceeding the target score, the board and score reset and the next round begins. The money earned does not recent, but accumulates across rounds. Point targets increase in each subsequent round.
+
+When the player loses, their final score is the total money they earned across all rounds.
