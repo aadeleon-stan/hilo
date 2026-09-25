@@ -23,6 +23,9 @@ Notes for continuing research on another machine or in a new session. The goal i
 - `daily.txt`: a future Daily mode spec, not started.
 - `playtest-settings.txt`, `playtest-notes.md`: the user's playtest spec and notes.
 
+Also in `research/`:
+- `low-word-distribution.md`: the exact distribution of `a·b % 100` over all 8100 factor pairs, deriving E[L] = 47.916̄ and the per-digit counts. Predates this directory; it is the source for the 47.9 mean that `progression-research.md` cites.
+
 **Next up:** `research/sim-plan-3.md` (draft, 2026-09-15), responding to the user's 9/15 notes in `upgrades.txt`. It re-examines the round 1 and round 2 findings, then covers a super-linear target ramp with drafting, random-draft synergy discovery, money as a real choice, and high decades as a challenge. It replaces the unfinished steps of `sim-plan-2.md` (S1d, S2d, S3d, S3e). Progress: the harness changes, P2, P3, P4a, P4c and P5 are done (`feature-docs/upgrades-research-3.md`, which opens with a summary), using the power p = 2 schedule from 135 that the user chose. P1 wasn't needed and P4b hasn't been run.
 
 **Round 2** (`sim-plan-2.md`: ones-digit pair upgrades, odds and guarantee upgrades, a constrained start with decade unlocks). The harness changes it required are done (weighted draws, per-pool range guarantees, `targetScale`, `startConfig` range presets, and `parallel.mjs` for multi-core runs) and validated: `harness-selftest.mjs` passes, and `baseline.mjs` still reproduces the original win rates (average 66.0% ±2.7 / planner 99.0% ±0.6 on 300 runs each, both within noise of the table below). S1a–c, S2a–c, S2e and S3a–c are done; findings are in `upgrades-research-2.md`.
