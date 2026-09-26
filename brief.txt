@@ -9,6 +9,6 @@ On the player turn:
 2. Score points towards the round target equivalent to the low word.
 3. Earn money for high word.
 
-If the player wins the round by meeting or exceeding the target score, the board and score reset and the next round begins. The money earned does not recent, but accumulates across rounds. Point targets increase in each subsequent round.
+If the player wins the round by meeting or exceeding the target score, the board and score reset and the next round begins. The money earned does not reset, but accumulates across rounds. Point targets increase in each subsequent round.
 
 When the player loses, their final score is the total money they earned across all rounds.
